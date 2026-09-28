@@ -17,11 +17,11 @@ extension BrowAnswers {
         pdf.field(SerenContent.dateOfBirth, dateOfBirth.dayString)
         pdf.field(SerenContent.idNumber, idNumber)
         pdf.field(SerenContent.serviceDate, Formatters.date.string(from: serviceDate))
-        pdf.field(SerenContent.registeredService, serviceLabel?.both ?? serviceID)
+        pdf.field(SerenContent.registeredService, serviceLabels.map(\.both).joined(separator: ", "))
         pdf.field(SerenContent.technician, technician)
 
         pdf.heading(2, SerenContent.detailsTitle)
-        SerenContent.details.forEach(pdf.bullet)
+        pdf.groups(SerenContent.details(for: selectedServices))
 
         pdf.heading(3, SerenContent.contraTitle)
         if let healthAlert {
@@ -32,9 +32,12 @@ extension BrowAnswers {
         }
         pdf.check(noContraindications, SerenContent.noneApply)
         pdf.bilingual(SerenContent.patchTestNote)
+        if SerenContent.includesLashes(selectedServices) {
+            pdf.bilingual(SerenContent.contactLensNote)
+        }
 
         pdf.heading(4, SerenContent.aftercareTitle)
-        SerenContent.aftercare.forEach(pdf.bullet)
+        pdf.groups(SerenContent.aftercare(for: selectedServices))
 
         pdf.heading(5, SerenContent.ackTitle)
         pdf.check(ackInformed, SerenContent.ackInformed)

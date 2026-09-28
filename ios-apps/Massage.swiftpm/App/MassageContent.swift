@@ -6,7 +6,7 @@ enum MassageContent {
     static let config = KioskConfig(
         formTitle: L("Phiếu thông tin & Cam kết Massage", "Massage Intake & Consent Form"),
         symbol: "leaf",
-        defaultBusinessName: "Seren Massage",
+        defaultBusinessName: "Seren",
         exportPrefix: "Massage Customers"
     )
 

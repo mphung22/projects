@@ -7,20 +7,20 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "Seren Consent",
+    name: "Nails",
     platforms: [
         .iOS("17.0")
     ],
     products: [
         .iOSApplication(
-            name: "Seren Consent",
+            name: "Nails",
             targets: ["AppModule"],
-            bundleIdentifier: "com.seren.consent.brows",
+            bundleIdentifier: "com.seren.consent.nails",
             teamIdentifier: "",
             displayVersion: "1.0",
             bundleVersion: "1",
-            appIcon: .placeholder(icon: .heart),
-            accentColor: .presetColor(.brown),
+            appIcon: .placeholder(icon: .palette),
+            accentColor: .presetColor(.pink),
             supportedDeviceFamilies: [
                 .pad,
                 .phone

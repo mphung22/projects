@@ -4,7 +4,7 @@
 # in Swift Playgrounds or Xcode — edit Shared/, then run this script.
 set -euo pipefail
 cd "$(dirname "$0")"
-for app in SerenConsent.swiftpm MassageConsent.swiftpm; do
+for app in *.swiftpm; do
   rm -rf "$app/Shared"
   mkdir -p "$app/Shared"
   cp Shared/*.swift "$app/Shared/"

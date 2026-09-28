@@ -89,6 +89,30 @@ struct BulletList: View {
     }
 }
 
+/// A titled list of bullet points, e.g. aftercare for one service.
+struct InfoGroup: Identifiable {
+    let title: L
+    let items: [L]
+    var id: String { title.en }
+}
+
+struct InfoGroupList: View {
+    let groups: [InfoGroup]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            ForEach(groups) { group in
+                VStack(alignment: .leading, spacing: 10) {
+                    if groups.count > 1 {
+                        LText(group.title, font: .headline)
+                    }
+                    BulletList(items: group.items)
+                }
+            }
+        }
+    }
+}
+
 struct NoticeBanner: View {
     let text: L
     var systemImage = "exclamationmark.triangle.fill"
@@ -314,7 +338,8 @@ struct ChoiceChips: View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: sizeClass == .compact ? min(columns, 2) : columns), spacing: 12) {
             ForEach(options) { option in
                 Chip(label: option.label, selected: selection == option.id) {
-                    selection = option.id
+                    // Tapping the selected option again clears it.
+                    selection = selection == option.id ? "" : option.id
                 }
             }
         }

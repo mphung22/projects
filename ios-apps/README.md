@@ -1,11 +1,13 @@
-# iPad & iPhone customer forms: Seren Brows and Massage
+# iPad & iPhone customer forms: Seren
 
-These are two apps that replace the paper forms. They are designed for iPad and also work on iPhone. The customer fills in the form and signs on the device. The app then saves a signed, bilingual (Vietnamese and English) PDF on that device.
+These are four apps that replace the paper forms. They are designed for iPad and also work on iPhone. The customer fills in the form and signs on the device. The app then saves a signed, bilingual (Vietnamese and English) PDF on that device.
 
-| App | Folder | Form |
+| App (home-screen name) | Folder | Form |
 |---|---|---|
-| **Seren Consent** | `SerenConsent.swiftpm` | Service agreement for Brows Lamination & Tint (Uốn & Nhuộm Chân Mày), from the paper form |
-| **Massage Consent** | `MassageConsent.swiftpm` | Massage intake and consent form |
+| **Brows and Lashes** | `BrowsLashes.swiftpm` | Brows lamination & tint (from the paper form), lash lift & tint, lash extensions |
+| **Massage** | `Massage.swiftpm` | Massage intake and consent |
+| **Nails** | `Nails.swiftpm` | Manicure, pedicure, gel, acrylic, nail art: health check, aftercare, photo consent |
+| **Head Spa** | `HeadSpa.swiftpm` | Head spa (gội đầu dưỡng sinh): scalp & hair, health check, consent |
 
 ## What the apps do
 
@@ -31,7 +33,7 @@ Each `.swiftpm` folder is a complete app. You can install it either way:
 
 ### Option A: Mac with Xcode (recommended)
 1. Install **Xcode 15 or newer** from the Mac App Store.
-2. Double-click `SerenConsent.swiftpm` (or `MassageConsent.swiftpm`). It opens in Xcode.
+2. Double-click the app folder (e.g. `BrowsLashes.swiftpm`). It opens in Xcode.
 3. Connect the iPad with a cable and pick it as the run destination at the top of the window.
 4. Under **Signing & Capabilities**, choose your Apple ID as the **Team** (a free Apple ID works).
 5. Press **▶ Run**.
@@ -41,7 +43,7 @@ On the iPad, the first time only: go to **Settings › General › VPN & Device 
 
 ### Option B: directly on the iPad with Swift Playgrounds (no Mac needed)
 1. Install **Swift Playgrounds** from the App Store on the iPad.
-2. Copy the `SerenConsent.swiftpm` folder into **iCloud Drive** or **On My iPad** using the Files app.
+2. Copy the app folder (e.g. `BrowsLashes.swiftpm`) into **iCloud Drive** or **On My iPad** using the Files app.
 3. Open it in Swift Playgrounds and tap **▶ Run**.
 4. To install it as a normal home-screen app, use **App Settings › App Store Connect** in Swift Playgrounds (this needs a paid developer account).
 
@@ -53,11 +55,13 @@ Turn on **Guided Access** (Settings › Accessibility › Guided Access) and the
 - Deleting the app deletes the records. **Export the CSV or PDFs regularly**, or keep the iPad backed up to iCloud.
 
 ## Changing the wording or the forms
-- Brows form text: `SerenConsent.swiftpm/App/SerenContent.swift`
-- Massage form text: `MassageConsent.swiftpm/App/MassageContent.swift`
+- Brows & lashes: `BrowsLashes.swiftpm/App/SerenContent.swift`
+- Massage: `Massage.swiftpm/App/MassageContent.swift`
+- Nails: `Nails.swiftpm/App/NailsContent.swift`
+- Head spa: `HeadSpa.swiftpm/App/HeadSpaContent.swift`
 
 Each file holds all the text as `L("Tiếng Việt", "English")` pairs. The on-screen form and the PDF both read from the same file.
 
-Code used by both apps (signature pad, PDF, storage, staff area, kiosk screens) lives in `Shared/`. If you edit anything there, run `./sync-shared.sh` to copy it into both apps. Each `.swiftpm` needs its own copy so it can be opened on its own.
+Code used by all the apps (signature pad, PDF, storage, staff area, kiosk screens) lives in `Shared/`. If you edit anything there, run `./sync-shared.sh` to copy it into every app. Each `.swiftpm` needs its own copy so it can be opened on its own.
 
 App name, bundle ID, icon and accent color are set in each app's `Package.swift`.

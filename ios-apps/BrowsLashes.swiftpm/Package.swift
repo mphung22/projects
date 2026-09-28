@@ -7,20 +7,20 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "Massage Consent",
+    name: "Brows and Lashes",
     platforms: [
         .iOS("17.0")
     ],
     products: [
         .iOSApplication(
-            name: "Massage Consent",
+            name: "Brows and Lashes",
             targets: ["AppModule"],
-            bundleIdentifier: "com.seren.consent.massage",
+            bundleIdentifier: "com.seren.consent.brows",
             teamIdentifier: "",
             displayVersion: "1.0",
             bundleVersion: "1",
-            appIcon: .placeholder(icon: .leaf),
-            accentColor: .presetColor(.teal),
+            appIcon: .placeholder(icon: .heart),
+            accentColor: .presetColor(.brown),
             supportedDeviceFamilies: [
                 .pad,
                 .phone

@@ -49,6 +49,19 @@ final class PDFComposer {
         append("\(number). \(l.both)", font: .systemFont(ofSize: 13, weight: .semibold), after: 6)
     }
 
+    func subheading(_ l: L) {
+        blocks.append(.space(2))
+        append(l.both, font: .systemFont(ofSize: 11, weight: .semibold), color: .darkGray, after: 4)
+    }
+
+    /// Bullet lists with a sub-heading per group (the heading is skipped when there is only one group).
+    func groups(_ groups: [InfoGroup]) {
+        for group in groups {
+            if groups.count > 1 { subheading(group.title) }
+            group.items.forEach(bullet)
+        }
+    }
+
     func field(_ label: L, _ value: String) {
         let s = NSMutableAttributedString(
             string: label.both + ": ",

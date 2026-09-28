@@ -6,7 +6,10 @@ struct BrowAnswers: FormAnswers {
     var dateOfBirth: Date?
     var idNumber = ""
     var serviceDate = Date()
-    var serviceID = SerenContent.services[0].id
+    /// Single service from records saved before several services could be chosen.
+    var serviceID = ""
+    /// Optional so records saved by the older version still open.
+    var serviceIDs: Set<String>? = []
     var technician = ""
 
     var contraindications: Set<String> = []
@@ -21,7 +24,11 @@ struct BrowAnswers: FormAnswers {
     var customerSignature: Data?
     var technicianSignature: Data?
 
-    var serviceLabel: L? { SerenContent.services.label(for: serviceID) }
+    var selectedServices: Set<String> {
+        get { serviceIDs ?? (serviceID.isEmpty ? [] : [serviceID]) }
+        set { serviceIDs = newValue }
+    }
+    var serviceLabels: [L] { SerenContent.services.labels(for: selectedServices) }
     var contraindicationLabels: [L] { SerenContent.contraindications.labels(for: contraindications) }
     var healthAckText: L { contraindications.isEmpty ? SerenContent.ackNoContraindications : SerenContent.ackDiscussed }
 
@@ -31,7 +38,7 @@ struct BrowAnswers: FormAnswers {
         if fullName.trimmed.isEmpty { missing.append(SerenContent.fullName) }
         if phone.filter(\.isNumber).count < 8 { missing.append(SerenContent.phone) }
         if dateOfBirth == nil { missing.append(SerenContent.dateOfBirth) }
-        if serviceID.isEmpty { missing.append(SerenContent.registeredService) }
+        if selectedServices.isEmpty { missing.append(SerenContent.registeredService) }
         if contraindications.isEmpty && !noContraindications {
             missing.append(L("Chống chỉ định: đánh dấu mục phù hợp hoặc “Không có”",
                              "Contraindications: tick what applies or “None of the above”"))
@@ -48,7 +55,7 @@ struct BrowAnswers: FormAnswers {
 
     var customerName: String { fullName }
     var customerPhone: String { phone }
-    var serviceSummary: String { serviceLabel?.en ?? serviceID }
+    var serviceSummary: String { serviceLabels.map(\.en).joined(separator: ", ") }
 
     var healthAlert: String? {
         contraindicationLabels.isEmpty ? nil : contraindicationLabels.map(\.both).joined(separator: " • ")
@@ -62,7 +69,7 @@ struct BrowAnswers: FormAnswers {
     var csvRow: [String] {
         [
             fullName, phone, dateOfBirth.dayString, idNumber, Formatters.date.string(from: serviceDate),
-            serviceLabel?.en ?? serviceID, technician,
+            serviceSummary, technician,
             contraindicationLabels.map(\.en).joined(separator: "; "),
             photoConsent == "agree" ? "Agree" : "Do not agree",
         ]
