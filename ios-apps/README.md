@@ -2,6 +2,10 @@
 
 These are four apps that replace the paper forms. They are designed for iPad and also work on iPhone. The customer fills in the form and signs on the device. The app then saves a signed, bilingual (Vietnamese and English) PDF on that device.
 
+**Recommended: `Seren.swiftpm`**, a single app with all four forms. Customers choose their service on the welcome screen, and the staff area has a menu to switch between each service's records. With a free Apple ID an iPad can hold only 3 self-installed apps, so one app avoids that limit and you only renew one app every 7 days.
+
+The single-service apps below are also available, e.g. if you get a paid Apple Developer account:
+
 | App (home-screen name) | Folder | Form |
 |---|---|---|
 | **Brows and Lashes** | `BrowsLashes.swiftpm` | Brows lamination & tint (from the paper form), lash lift & tint, lash extensions |
@@ -62,6 +66,6 @@ Turn on **Guided Access** (Settings › Accessibility › Guided Access) and the
 
 Each file holds all the text as `L("Tiếng Việt", "English")` pairs. The on-screen form and the PDF both read from the same file.
 
-Code used by all the apps (signature pad, PDF, storage, staff area, kiosk screens) lives in `Shared/`. If you edit anything there, run `./sync-shared.sh` to copy it into every app. Each `.swiftpm` needs its own copy so it can be opened on its own.
+Code used by all the apps (signature pad, PDF, storage, staff area, kiosk screens) lives in `Shared/`. Each form's source of truth is its single-service app's `App/` folder. After editing either, run `./sync-shared.sh`: it copies `Shared/` into every app and copies the four forms into `Seren.swiftpm/Services/`. Each `.swiftpm` needs its own copy so it can be opened on its own.
 
 App name, bundle ID, icon and accent color are set in each app's `Package.swift`.

@@ -2,19 +2,38 @@
 
 import SwiftUI
 
-struct StaffArea<A: FormAnswers>: View {
-    let config: KioskConfig
-    @ObservedObject var store: SubmissionStore<A>
+struct StaffArea: View {
+    let services: [KioskService]
     @ObservedObject var feedbackStore: FeedbackStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.languageMode) private var mode
     @State private var unlocked = false
+    @State private var serviceID = ""
+
+    private var current: KioskService? {
+        services.first { $0.id == serviceID } ?? services.first
+    }
 
     var body: some View {
-        if unlocked {
-            StaffDashboard(config: config, store: store, feedbackStore: feedbackStore, onClose: { dismiss() })
-        } else {
+        if !unlocked {
             PINGate(onUnlock: { unlocked = true }, onCancel: { dismiss() })
+        } else if let current {
+            current.makeRecords(feedbackStore, switcher, { dismiss() })
+                .id(current.id)
         }
+    }
+
+    /// Lets staff switch between services when the app has more than one.
+    private var switcher: AnyView? {
+        guard services.count > 1 else { return nil }
+        return AnyView(
+            Picker("Dịch vụ / Service", selection: Binding(get: { current?.id ?? "" }, set: { serviceID = $0 })) {
+                ForEach(services) { service in
+                    Text(service.config.shortName?.text(mode) ?? service.config.formTitle.text(mode)).tag(service.id)
+                }
+            }
+            .pickerStyle(.menu)
+        )
     }
 }
 
@@ -96,10 +115,11 @@ private struct ShareItem: Identifiable {
     let url: URL
 }
 
-private struct StaffDashboard<A: FormAnswers>: View {
+struct StaffDashboard<A: FormAnswers>: View {
     let config: KioskConfig
     @ObservedObject var store: SubmissionStore<A>
     @ObservedObject var feedbackStore: FeedbackStore
+    var switcher: AnyView?
     let onClose: () -> Void
 
     @State private var search = ""
@@ -133,6 +153,15 @@ private struct StaffDashboard<A: FormAnswers>: View {
             .overlay {
                 if filtered.isEmpty {
                     ContentUnavailableView("Chưa có hồ sơ / No records", systemImage: "tray")
+                }
+            }
+            .safeAreaInset(edge: .top) {
+                if let switcher {
+                    switcher
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.vertical, 6)
+                        .background(.bar)
                 }
             }
             .searchable(text: $search, prompt: "Tên hoặc SĐT / Name or phone")

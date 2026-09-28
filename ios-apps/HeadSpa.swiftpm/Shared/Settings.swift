@@ -12,6 +12,8 @@ struct KioskConfig {
     let defaultBusinessName: String
     /// Prefix for exported CSV files.
     let exportPrefix: String
+    /// Short name for the service picker, e.g. "Nails". Only needed when an app has several services.
+    var shortName: L? = nil
 }
 
 enum SettingsKey {
