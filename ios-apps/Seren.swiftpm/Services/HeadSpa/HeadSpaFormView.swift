@@ -115,15 +115,18 @@ struct HeadSpaFormView: View {
 
     private var consent: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(HeadSpaContent.agreements(businessName: businessName)) { option in
-                CheckRow(text: option.label, isOn: $answers.agreements.contains(option.id))
-            }
+            let agreements = HeadSpaContent.agreements(businessName: businessName)
+            ConsentBlock(
+                statements: agreements.map(\.label),
+                isOn: Binding(
+                    get: { Set(agreements.map(\.id)).isSubset(of: answers.agreements) },
+                    set: { answers.agreements = $0 ? Set(agreements.map(\.id)) : [] }
+                )
+            )
             SignaturePad(title: HeadSpaContent.customerSignature, signature: $answers.customerSignature, required: true)
                 .padding(.top, 20)
             Text("Ngày / Date: \(Formatters.date.string(from: Date()))")
                 .foregroundStyle(.secondary)
-            SignaturePad(title: HeadSpaContent.therapistSignature, signature: $answers.therapistSignature)
-                .padding(.top, 20)
         }
     }
 

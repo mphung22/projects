@@ -40,7 +40,7 @@ struct NailsAnswers: FormAnswers {
                              "Health: tick what applies or “None of the above”"))
         }
         if !ackInformed || !ackHealth || !ackRisk {
-            missing.append(L("Đánh dấu các mục Cam Kết", "Tick the Acknowledgement boxes"))
+            missing.append(L("Đánh dấu ô đồng ý các cam kết", "Tick the box to agree to the statements"))
         }
         if photoConsent.isEmpty { missing.append(NailsContent.photoQuestion) }
         if customerSignature == nil { missing.append(NailsContent.customerSignature) }

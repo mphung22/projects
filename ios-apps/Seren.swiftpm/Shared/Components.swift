@@ -290,6 +290,25 @@ struct CheckRow: View {
     }
 }
 
+/// Several statements agreed to with a single tick.
+struct ConsentBlock: View {
+    let statements: [L]
+    @Binding var isOn: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            BulletList(items: statements)
+            CheckRow(text: L("Tôi đã đọc và đồng ý với tất cả các cam kết trên.", "I have read and agree to all of the above."),
+                     isOn: $isOn)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isOn ? Color.accentColor.opacity(0.12) : Color(.secondarySystemBackground))
+                )
+        }
+    }
+}
+
 struct Chip: View {
     let label: L
     let selected: Bool

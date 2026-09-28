@@ -49,8 +49,6 @@ extension HeadSpaAnswers {
         pdf.space(8)
         let day = Formatters.date.string(from: submittedAt)
         pdf.signatures([
-            .init(title: "\(businessName) — Kỹ thuật viên / Therapist",
-                  image: therapistSignature.image, name: therapist, date: day),
             .init(title: "Khách hàng / Customer",
                   image: customerSignature.image, name: fullName, date: day),
         ])

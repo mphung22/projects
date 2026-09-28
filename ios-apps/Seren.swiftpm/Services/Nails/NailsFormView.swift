@@ -104,12 +104,16 @@ struct NailsFormView: View {
 
     private var acknowledgement: some View {
         VStack(alignment: .leading, spacing: 8) {
-            CheckRow(text: NailsContent.ackInformed, isOn: $answers.ackInformed)
-            CheckRow(text: answers.healthAckText, isOn: $answers.ackHealth)
-            CheckRow(text: NailsContent.ackRisk, isOn: $answers.ackRisk)
             FieldLabel(title: NailsContent.photoQuestion, required: true)
-                .padding(.top, 12)
             ChoiceChips(options: NailsContent.photoOptions, selection: $answers.photoConsent)
+            ConsentBlock(
+                statements: [NailsContent.ackInformed, answers.healthAckText, NailsContent.ackRisk],
+                isOn: Binding(
+                    get: { answers.ackInformed && answers.ackHealth && answers.ackRisk },
+                    set: { answers.ackInformed = $0; answers.ackHealth = $0; answers.ackRisk = $0 }
+                )
+            )
+            .padding(.top, 16)
         }
     }
 
@@ -118,7 +122,6 @@ struct NailsFormView: View {
             SignaturePad(title: NailsContent.customerSignature, signature: $answers.customerSignature, required: true)
             Text("Ngày / Date: \(Formatters.date.string(from: Date()))")
                 .foregroundStyle(.secondary)
-            SignaturePad(title: NailsContent.technicianSignature, signature: $answers.technicianSignature)
         }
     }
 

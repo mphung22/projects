@@ -42,7 +42,7 @@ struct BrowAnswers: FormAnswers {
                              "Contraindications: tick what applies or “None of the above”"))
         }
         if !ackInformed || !ackHealth {
-            missing.append(L("Đánh dấu các mục Cam Kết", "Tick the Acknowledgement boxes"))
+            missing.append(L("Đánh dấu ô đồng ý các cam kết", "Tick the box to agree to the statements"))
         }
         if photoConsent.isEmpty { missing.append(SerenContent.photoQuestion) }
         if customerSignature == nil { missing.append(SerenContent.customerSignature) }

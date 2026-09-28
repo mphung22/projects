@@ -49,8 +49,6 @@ extension NailsAnswers {
         pdf.space(6)
         let day = Formatters.date.string(from: submittedAt)
         pdf.signatures([
-            .init(title: "\(businessName) — Kỹ thuật viên / Technician",
-                  image: technicianSignature.image, name: technician, date: day),
             .init(title: "Khách hàng / Customer",
                   image: customerSignature.image, name: fullName, date: day),
         ])

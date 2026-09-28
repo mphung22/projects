@@ -43,7 +43,7 @@ struct MassageAnswers: FormAnswers {
         }
         let allAgreements = Set(MassageContent.agreements(businessName: businessName).map(\.id))
         if !allAgreements.isSubset(of: agreements) {
-            missing.append(L("Đánh dấu tất cả các mục Cam kết", "Tick every consent statement"))
+            missing.append(L("Đánh dấu ô đồng ý các cam kết", "Tick the box to agree to the statements"))
         }
         if customerSignature == nil { missing.append(MassageContent.customerSignature) }
         return missing

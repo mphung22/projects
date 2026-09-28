@@ -102,11 +102,16 @@ struct BrowFormView: View {
 
     private var acknowledgement: some View {
         VStack(alignment: .leading, spacing: 8) {
-            CheckRow(text: SerenContent.ackInformed, isOn: $answers.ackInformed)
-            CheckRow(text: answers.healthAckText, isOn: $answers.ackHealth)
             FieldLabel(title: SerenContent.photoQuestion, required: true)
-                .padding(.top, 12)
             ChoiceChips(options: SerenContent.photoOptions, selection: $answers.photoConsent)
+            ConsentBlock(
+                statements: [SerenContent.ackInformed, answers.healthAckText],
+                isOn: Binding(
+                    get: { answers.ackInformed && answers.ackHealth },
+                    set: { answers.ackInformed = $0; answers.ackHealth = $0 }
+                )
+            )
+            .padding(.top, 16)
         }
     }
 
@@ -115,7 +120,6 @@ struct BrowFormView: View {
             SignaturePad(title: SerenContent.customerSignature, signature: $answers.customerSignature, required: true)
             Text("Ngày / Date: \(Formatters.date.string(from: Date()))")
                 .foregroundStyle(.secondary)
-            SignaturePad(title: SerenContent.technicianSignature, signature: $answers.technicianSignature)
         }
     }
 
