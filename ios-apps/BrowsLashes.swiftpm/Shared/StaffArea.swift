@@ -313,7 +313,7 @@ private struct StaffSettingsView: View {
     @AppStorage(SettingsKey.businessName) private var businessName = ""
     @AppStorage(SettingsKey.staffNames) private var staffNames = ""
     @AppStorage(SettingsKey.staffPIN) private var pin = SettingsKey.defaultPIN
-    @AppStorage(SettingsKey.googleReviewURL) private var reviewLink = ""
+    @AppStorage(SettingsKey.googleReviewURL) private var reviewLink = SettingsKey.defaultGoogleReviewURL
     @State private var newPIN = ""
     @State private var confirmPIN = ""
     @State private var pinMessage: String?

@@ -159,7 +159,7 @@ struct FeedbackFormView: View {
 /// Shown after every rating, so all customers are invited equally, as Google's review policy requires.
 struct FeedbackThanksScreen: View {
     let onDone: () -> Void
-    @AppStorage(SettingsKey.googleReviewURL) private var reviewLink = ""
+    @AppStorage(SettingsKey.googleReviewURL) private var reviewLink = SettingsKey.defaultGoogleReviewURL
 
     var body: some View {
         VStack(spacing: 22) {

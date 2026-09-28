@@ -24,6 +24,8 @@ enum SettingsKey {
     static let googleReviewURL = "googleReviewURL"
 
     static let defaultPIN = "1234"
+    /// Seren's Google review page. Staff can change it in Settings.
+    static let defaultGoogleReviewURL = "https://g.page/r/CTpMl46hoXZSEBM/review"
 
     static func registerDefaults(businessName: String) {
         UserDefaults.standard.register(defaults: [
@@ -31,7 +33,7 @@ enum SettingsKey {
             SettingsKey.staffPIN: defaultPIN,
             SettingsKey.staffNames: "",
             SettingsKey.languageMode: LanguageMode.both.rawValue,
-            SettingsKey.googleReviewURL: "",
+            SettingsKey.googleReviewURL: defaultGoogleReviewURL,
         ])
     }
 }
