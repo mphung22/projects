@@ -1,3 +1,0 @@
-# Seren check-in site (checkin.serensaigon.com). Plain static files, no build step.
-[build]
-  publish = "."

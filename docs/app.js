@@ -1,5 +1,6 @@
 /* Seren check-in: customers choose a service, fill in the form on their phone and sign.
-   Submissions are stored in Netlify Forms (form "checkin"); only Seren's Netlify team can read them.
+   Submissions are sent to Seren's Google Apps Script (see google-apps-script/Code.gs), which adds a row to a
+   private Google Sheet and saves the signature to Google Drive. The endpoint URL is set in config.js.
    The wording matches the iPad app (ios-apps/*Content.swift). */
 'use strict';
 
@@ -17,6 +18,7 @@ const T = {
   submit: L('Hoàn tất & Gửi', 'Complete & Submit'),
   sending: L('Đang gửi…', 'Sending…'),
   pleaseComplete: L('Vui lòng hoàn thành:', 'Please complete:'),
+  notConfigured: L('Hệ thống check-in chưa được cài đặt. Vui lòng báo lễ tân.', 'Check-in is not set up yet. Please tell reception.'),
   sendError: L('Không gửi được. Vui lòng kiểm tra kết nối mạng và thử lại, hoặc báo lễ tân.',
                'Could not send. Please check your connection and try again, or tell reception.'),
   thanks: L('Cảm ơn quý khách!', 'Thank you!'),
@@ -718,19 +720,17 @@ function renderSignature(item) {
       h('button', { type: 'button', class: 'link-button', onclick: clear }, txt(T.clear))));
 }
 
-/** The signature on a white background, as a PNG blob. */
-function signatureBlob() {
-  return new Promise((resolveBlob) => {
-    const src = signaturePad.canvas;
-    const out = document.createElement('canvas');
-    out.width = src.width;
-    out.height = src.height;
-    const ctx = out.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(src, 0, 0);
-    out.toBlob((blob) => resolveBlob(blob), 'image/png');
-  });
+/** The signature on a white background, as a PNG data URL. */
+function signatureDataURL() {
+  const src = signaturePad.canvas;
+  const out = document.createElement('canvas');
+  out.width = src.width;
+  out.height = src.height;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.drawImage(src, 0, 0);
+  return out.toDataURL('image/png');
 }
 
 // ---------------------------------------------------------------------------
@@ -841,37 +841,42 @@ async function submit() {
   button.replaceChildren(txt(T.sending));
 
   try {
+    const endpoint = (window.SEREN_CHECKIN || {}).endpoint;
+    if (!endpoint) throw new Error('not-configured');
     const answers = { ...state };
     delete answers.signature;
     const photo = allItems().find((i) => i.key === 'photo_consent');
-
-    const data = new FormData();
-    data.append('form-name', 'checkin');
-    data.append('bot-field', '');
-    data.append('service', both(service.name));
-    data.append('full_name', (state.full_name || '').trim());
-    data.append('phone', (state.phone || '').trim());
-    data.append('date_of_birth', state.date_of_birth || '');
-    data.append('technician', (state.technician || '').trim());
-    data.append('health_flags', healthFlags());
-    data.append('photo_consent', photo ? formatValue(photo) : '—');
-    data.append('language', lang);
-    data.append('summary', buildSummary());
-    data.append('answers_json', JSON.stringify({ service: service.id, ...answers }));
-    const blob = await signatureBlob();
-    const safeName = (state.full_name || 'customer').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd')
-      .replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'customer';
-    data.append('signature', blob, `signature-${safeName}.png`);
-
-    const response = await fetch('/', { method: 'POST', body: data });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = {
+      website: '', // honeypot: real people never fill this in
+      service: both(service.name),
+      full_name: (state.full_name || '').trim(),
+      phone: (state.phone || '').trim(),
+      date_of_birth: state.date_of_birth || '',
+      technician: (state.technician || '').trim(),
+      health_flags: healthFlags(),
+      photo_consent: photo ? formatValue(photo) : '—',
+      language: lang,
+      summary: buildSummary(),
+      answers_json: JSON.stringify({ service: service.id, ...answers }),
+      signature: signatureDataURL(),
+    };
+    // text/plain keeps this a "simple" request, which Google Apps Script accepts from any site.
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
     showThanks();
   } catch (error) {
     console.error(error);
     button.disabled = false;
     button.replaceChildren(T.submit.vi, lang !== 'vi' ? h('span', { class: 'en' }, T.submit.en) : null);
     const box = document.getElementById('errors');
-    box.replaceChildren(h('div', { class: 'card errors', role: 'alert', style: 'margin-bottom:16px' }, txt(T.sendError)));
+    const message = error.message === 'not-configured' ? T.notConfigured : T.sendError;
+    box.replaceChildren(h('div', { class: 'card errors', role: 'alert', style: 'margin-bottom:16px' }, txt(message)));
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }

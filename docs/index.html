@@ -9,24 +9,6 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!--
-    Netlify Forms detects forms at deploy time from static HTML. This hidden form declares
-    every field the app submits; app.js posts the real data with fetch().
-  -->
-  <form name="checkin" data-netlify="true" netlify-honeypot="bot-field" hidden>
-    <input name="bot-field">
-    <input name="service">
-    <input name="full_name">
-    <input name="phone">
-    <input name="date_of_birth">
-    <input name="technician">
-    <input name="health_flags">
-    <input name="photo_consent">
-    <input name="language">
-    <textarea name="summary"></textarea>
-    <textarea name="answers_json"></textarea>
-    <input type="file" name="signature">
-  </form>
 
   <header class="topbar">
     <button class="link-button" id="back" hidden>‹ <span data-l="back"></span></button>
@@ -41,6 +23,7 @@
   <main id="app" aria-live="polite"></main>
 
   <noscript><p class="card">Vui lòng bật JavaScript. / Please enable JavaScript.</p></noscript>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
