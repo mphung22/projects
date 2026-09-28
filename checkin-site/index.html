@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f7f4ee">
+  <title>Seren · Check-in</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!--
+    Netlify Forms detects forms at deploy time from static HTML. This hidden form declares
+    every field the app submits; app.js posts the real data with fetch().
+  -->
+  <form name="checkin" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input name="bot-field">
+    <input name="service">
+    <input name="full_name">
+    <input name="phone">
+    <input name="date_of_birth">
+    <input name="technician">
+    <input name="health_flags">
+    <input name="photo_consent">
+    <input name="language">
+    <textarea name="summary"></textarea>
+    <textarea name="answers_json"></textarea>
+    <input type="file" name="signature">
+  </form>
+
+  <header class="topbar">
+    <button class="link-button" id="back" hidden>‹ <span data-l="back"></span></button>
+    <div class="brand">S E R E N</div>
+    <select id="lang" aria-label="Ngôn ngữ / Language">
+      <option value="both">VI + EN</option>
+      <option value="vi">Tiếng Việt</option>
+      <option value="en">English</option>
+    </select>
+  </header>
+
+  <main id="app" aria-live="polite"></main>
+
+  <noscript><p class="card">Vui lòng bật JavaScript. / Please enable JavaScript.</p></noscript>
+  <script src="app.js"></script>
+</body>
+</html>
