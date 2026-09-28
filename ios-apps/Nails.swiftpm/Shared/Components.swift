@@ -53,7 +53,8 @@ struct FormSection<Content: View>: View {
         .padding(sizeClass == .compact ? 16 : 24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
-        .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+        // A hairline border instead of a blurred shadow: shadows on large cards are costly to redraw while scrolling.
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.black.opacity(0.07), lineWidth: 1))
     }
 }
 
