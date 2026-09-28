@@ -2,7 +2,7 @@
 
 import SwiftUI
 
-/// Welcome → form → thank you → back to welcome, with a PIN-protected staff area.
+/// Welcome → form → thank you → back to welcome, plus customer feedback and a PIN-protected staff area.
 struct KioskRoot<A: FormAnswers, FormContent: View>: View {
     let config: KioskConfig
     @ObservedObject var store: SubmissionStore<A>
@@ -18,8 +18,9 @@ struct KioskRoot<A: FormAnswers, FormContent: View>: View {
         self.makeForm = form
     }
 
-    private enum Screen { case welcome, form, thanks }
+    private enum Screen { case welcome, form, thanks, feedback, feedbackThanks }
 
+    @StateObject private var feedbackStore = FeedbackStore()
     @State private var screen: Screen = .welcome
     @State private var formID = UUID()
     @State private var showStaff = false
@@ -39,6 +40,7 @@ struct KioskRoot<A: FormAnswers, FormContent: View>: View {
                     businessName: businessName,
                     languageRaw: $languageRaw,
                     onStart: startForm,
+                    onFeedback: { withAnimation { screen = .feedback } },
                     onStaff: { showStaff = true }
                 )
                 .transition(.opacity)
@@ -59,32 +61,61 @@ struct KioskRoot<A: FormAnswers, FormContent: View>: View {
                                 }
                             }
                         }
-                        .confirmationDialog(
-                            L("Huỷ phiếu này? Thông tin đã nhập sẽ bị xoá.", "Discard this form? Your answers will be cleared.").text(language),
-                            isPresented: $confirmCancel,
-                            titleVisibility: .visible
+                        .alert(
+                            L("Quay lại trang chủ?", "Go back to the start?").text(language),
+                            isPresented: $confirmCancel
                         ) {
-                            Button(L("Huỷ phiếu", "Discard").text(language), role: .destructive) {
-                                withAnimation { screen = .welcome }
+                            Button(L("Về trang chủ", "Back to start").text(language), role: .destructive) {
+                                goHome()
                             }
+                            Button(L("Tiếp tục điền", "Keep filling in").text(language), role: .cancel) {}
+                        } message: {
+                            Text(L("Thông tin đã nhập sẽ bị xoá.", "Your answers will be cleared.").text(language))
                         }
                 }
                 .transition(.move(edge: .trailing))
 
             case .thanks:
-                ThankYouScreen(onDone: { withAnimation { screen = .welcome } })
+                ThankYouScreen(onDone: goHome)
                     .transition(.opacity)
                     .task {
                         // Return to the welcome screen automatically for the next customer.
                         try? await Task.sleep(nanoseconds: 10_000_000_000)
-                        if screen == .thanks { withAnimation { screen = .welcome } }
+                        if screen == .thanks { goHome() }
+                    }
+
+            case .feedback:
+                NavigationStack {
+                    FeedbackFormView(onSubmit: submitFeedback)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button(L("Huỷ", "Cancel").text(language), action: goHome)
+                            }
+                            ToolbarItem(placement: .primaryAction) {
+                                Menu {
+                                    LanguagePicker(raw: $languageRaw)
+                                } label: {
+                                    Image(systemName: "globe")
+                                }
+                            }
+                        }
+                }
+                .transition(.move(edge: .trailing))
+
+            case .feedbackThanks:
+                FeedbackThanksScreen(onDone: goHome)
+                    .transition(.opacity)
+                    .task {
+                        // Leave time to scan the Google review QR code.
+                        try? await Task.sleep(nanoseconds: 60_000_000_000)
+                        if screen == .feedbackThanks { goHome() }
                     }
             }
         }
         .environment(\.languageMode, language)
         .preferredColorScheme(.light)
         .fullScreenCover(isPresented: $showStaff) {
-            StaffArea(config: config, store: store)
+            StaffArea(config: config, store: store, feedbackStore: feedbackStore)
                 .environment(\.languageMode, language)
                 .preferredColorScheme(.light)
         }
@@ -95,6 +126,19 @@ struct KioskRoot<A: FormAnswers, FormContent: View>: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(saveError ?? "")
+        }
+    }
+
+    private func goHome() {
+        withAnimation { screen = .welcome }
+    }
+
+    private func submitFeedback(_ feedback: Feedback) {
+        do {
+            try feedbackStore.add(feedback)
+            withAnimation { screen = .feedbackThanks }
+        } catch {
+            saveError = error.localizedDescription
         }
     }
 
@@ -118,6 +162,7 @@ private struct WelcomeScreen: View {
     let businessName: String
     @Binding var languageRaw: String
     let onStart: () -> Void
+    let onFeedback: () -> Void
     let onStaff: () -> Void
 
     var body: some View {
@@ -154,6 +199,16 @@ private struct WelcomeScreen: View {
             }
             .buttonStyle(.plain)
             .padding(.top, 8)
+
+            Button(action: onFeedback) {
+                Label("Đánh giá dịch vụ / Leave feedback", systemImage: "star.bubble")
+                    .font(.title3.weight(.medium))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .overlay(Capsule().stroke(Color.accentColor, lineWidth: 1.5))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
             Spacer()
             Spacer()
         }

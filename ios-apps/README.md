@@ -15,11 +15,13 @@ These are two apps that replace the paper forms. They are designed for iPad and 
 - **Checks before submit:** Required fields, the health questions, the consent checkboxes and the customer signature must all be filled in before the form can be submitted.
 - **Health warnings:** If a customer ticks a contraindication or health condition, the form asks them to tell the technician. In the staff area the record gets a ⚠️ mark so staff notice it.
   - *Brows:* if the date of birth shows the customer is under 16, "Under 16" is ticked automatically.
+- **Customer feedback and Google reviews:** a **Đánh giá dịch vụ / Leave feedback** button on the welcome screen. After the service, customers give 1–5 stars, can add a comment, and choose who looked after them. Then they see a QR code for your Google review page. Every customer sees the QR code whatever their rating, because Google doesn't allow asking only happy customers for reviews. Paste your review link in Settings (Google Business Profile › Ask for reviews / Get more reviews).
 - **Staff area** (the 🔒 icon at the bottom right of the welcome screen, protected by a PIN):
   - Search past forms by name or phone number.
   - View, print, share (AirDrop, email, Files) or delete each signed PDF.
   - Export all customers to a CSV file that opens in Excel, Numbers or Google Sheets.
-  - Settings: business name, staff list (customers pick their technician from it), change the PIN.
+  - Read customer feedback and the average rating, and export it to CSV.
+  - Settings: business name, Google review link, staff list (customers pick their technician from it), change the PIN.
 
 > ⚠️ **The default staff PIN is `1234`.** Change it in Staff area → ⋯ → Settings the first time you open each app.
 

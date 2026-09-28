@@ -19,6 +19,7 @@ enum SettingsKey {
     static let staffPIN = "staffPIN"
     static let staffNames = "staffNames"
     static let languageMode = "languageMode"
+    static let googleReviewURL = "googleReviewURL"
 
     static let defaultPIN = "1234"
 
@@ -28,6 +29,7 @@ enum SettingsKey {
             SettingsKey.staffPIN: defaultPIN,
             SettingsKey.staffNames: "",
             SettingsKey.languageMode: LanguageMode.both.rawValue,
+            SettingsKey.googleReviewURL: "",
         ])
     }
 }

@@ -5,12 +5,13 @@ import SwiftUI
 struct StaffArea<A: FormAnswers>: View {
     let config: KioskConfig
     @ObservedObject var store: SubmissionStore<A>
+    @ObservedObject var feedbackStore: FeedbackStore
     @Environment(\.dismiss) private var dismiss
     @State private var unlocked = false
 
     var body: some View {
         if unlocked {
-            StaffDashboard(config: config, store: store, onClose: { dismiss() })
+            StaffDashboard(config: config, store: store, feedbackStore: feedbackStore, onClose: { dismiss() })
         } else {
             PINGate(onUnlock: { unlocked = true }, onCancel: { dismiss() })
         }
@@ -98,11 +99,13 @@ private struct ShareItem: Identifiable {
 private struct StaffDashboard<A: FormAnswers>: View {
     let config: KioskConfig
     @ObservedObject var store: SubmissionStore<A>
+    @ObservedObject var feedbackStore: FeedbackStore
     let onClose: () -> Void
 
     @State private var search = ""
     @State private var selection: UUID?
     @State private var showSettings = false
+    @State private var showFeedback = false
     @State private var shareItem: ShareItem?
     @State private var exportError: String?
 
@@ -147,6 +150,11 @@ private struct StaffDashboard<A: FormAnswers>: View {
                         }
                         .disabled(store.submissions.isEmpty)
                         Button {
+                            showFeedback = true
+                        } label: {
+                            Label("Phản hồi khách hàng / Feedback (\(feedbackStore.items.count))", systemImage: "star.bubble")
+                        }
+                        Button {
                             showSettings = true
                         } label: {
                             Label("Cài đặt / Settings", systemImage: "gearshape")
@@ -171,6 +179,9 @@ private struct StaffDashboard<A: FormAnswers>: View {
         }
         .sheet(isPresented: $showSettings) {
             StaffSettingsView()
+        }
+        .sheet(isPresented: $showFeedback) {
+            FeedbackListView(exportPrefix: config.exportPrefix, store: feedbackStore)
         }
         .alert(
             "Lỗi / Error",
@@ -256,7 +267,7 @@ private struct SubmissionDetail<A: FormAnswers>: View {
     }
 }
 
-private struct ActivityView: UIViewControllerRepresentable {
+struct ActivityView: UIViewControllerRepresentable {
     let items: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
@@ -273,6 +284,7 @@ private struct StaffSettingsView: View {
     @AppStorage(SettingsKey.businessName) private var businessName = ""
     @AppStorage(SettingsKey.staffNames) private var staffNames = ""
     @AppStorage(SettingsKey.staffPIN) private var pin = SettingsKey.defaultPIN
+    @AppStorage(SettingsKey.googleReviewURL) private var reviewLink = ""
     @State private var newPIN = ""
     @State private var confirmPIN = ""
     @State private var pinMessage: String?
@@ -282,6 +294,21 @@ private struct StaffSettingsView: View {
             Form {
                 Section("Tên cơ sở / Business name") {
                     TextField("Business name", text: $businessName)
+                }
+
+                Section {
+                    TextField("https://g.page/r/…", text: $reviewLink)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    if !reviewLink.trimmed.isEmpty && googleReviewURL(reviewLink) == nil {
+                        Text("Link không hợp lệ — phải bắt đầu bằng https:// / Invalid link — must start with https://")
+                            .foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("Link đánh giá Google / Google review link")
+                } footer: {
+                    Text("Google Business Profile › Ask for reviews / Get more reviews › copy the link. Khách sẽ thấy mã QR sau khi đánh giá. / Customers see it as a QR code after leaving feedback.")
                 }
 
                 Section {
