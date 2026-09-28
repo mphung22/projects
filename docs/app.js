@@ -43,7 +43,7 @@ const T = {
 
 const F = {
   name: { type: 'text', key: 'full_name', label: L('Họ Tên', 'Full Name'), required: true, input: 'text', autocomplete: 'name' },
-  phone: { type: 'text', key: 'phone', label: L('Số Điện Thoại', 'Phone Number'), required: true, input: 'tel', autocomplete: 'tel' },
+  phone: { type: 'text', key: 'phone', label: L('Số Điện Thoại', 'Phone Number'), input: 'tel', autocomplete: 'tel' },
   email: { type: 'text', key: 'email', label: L('Email', 'Email'), input: 'email', autocomplete: 'email' },
   dob: (required) => ({ type: 'date', key: 'date_of_birth', label: L('Ngày Sinh', 'Date of Birth'), required }),
   emergency: { type: 'text', key: 'emergency_contact', label: L('Liên hệ khẩn cấp (tên & SĐT)', 'Emergency Contact (name & phone)'), input: 'text' },
@@ -97,7 +97,7 @@ const SERVICES = [
     title: L('Hợp đồng dịch vụ', 'Service Agreement'),
     sections: [
       { title: L('Thông tin khách hàng', 'Customer Information'), items: [
-        F.name, F.phone, F.dob(true),
+        F.name, F.phone, F.dob(false),
         { type: 'text', key: 'id_number', label: L('CCCD/CMND', 'ID/Passport'), input: 'text' },
         F.technician(),
         { type: 'multi', key: 'brow_services', required: true,
@@ -748,9 +748,7 @@ function validate() {
     const value = state[item.key];
     switch (item.type) {
       case 'text':
-        if (item.key === 'phone') {
-          if ((value || '').replace(/\D/g, '').length < 8) { missing.push(item.label); bad.push(item.key); }
-        } else if (item.required && !(value || '').trim()) { missing.push(item.label); bad.push(item.key); }
+        if (item.required && !(value || '').trim()) { missing.push(item.label); bad.push(item.key); }
         break;
       case 'date':
         if (item.required && !value) { missing.push(item.label); bad.push(item.key); }
