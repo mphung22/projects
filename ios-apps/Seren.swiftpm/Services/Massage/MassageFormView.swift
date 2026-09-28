@@ -68,7 +68,7 @@ struct MassageFormView: View {
             AdaptiveRow {
                 TextFieldRow(title: MassageContent.fullName, text: $answers.fullName, required: true,
                              contentType: .name, capitalization: .words)
-                TextFieldRow(title: MassageContent.phone, text: $answers.phone, required: true,
+                TextFieldRow(title: MassageContent.phone, text: $answers.phone,
                              keyboard: .phonePad, contentType: .telephoneNumber)
             }
             AdaptiveRow {

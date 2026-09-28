@@ -55,7 +55,7 @@ struct NailsFormView: View {
             AdaptiveRow {
                 TextFieldRow(title: NailsContent.fullName, text: $answers.fullName, required: true,
                              contentType: .name, capitalization: .words)
-                TextFieldRow(title: NailsContent.phone, text: $answers.phone, required: true,
+                TextFieldRow(title: NailsContent.phone, text: $answers.phone,
                              keyboard: .phonePad, contentType: .telephoneNumber)
             }
             AdaptiveRow {

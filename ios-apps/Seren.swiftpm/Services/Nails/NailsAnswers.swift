@@ -34,7 +34,6 @@ struct NailsAnswers: FormAnswers {
     var missingItems: [L] {
         var missing: [L] = []
         if fullName.trimmed.isEmpty { missing.append(NailsContent.fullName) }
-        if phone.filter(\.isNumber).count < 8 { missing.append(NailsContent.phone) }
         if services.isEmpty { missing.append(NailsContent.servicesLabel) }
         if conditions.isEmpty && !noConditions {
             missing.append(L("Sức khoẻ: đánh dấu mục phù hợp hoặc “Không có”",

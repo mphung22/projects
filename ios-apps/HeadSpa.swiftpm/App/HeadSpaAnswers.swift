@@ -33,7 +33,6 @@ struct HeadSpaAnswers: FormAnswers {
     func missingItems(businessName: String) -> [L] {
         var missing: [L] = []
         if fullName.trimmed.isEmpty { missing.append(HeadSpaContent.fullName) }
-        if phone.filter(\.isNumber).count < 8 { missing.append(HeadSpaContent.phone) }
         if serviceID.isEmpty { missing.append(HeadSpaContent.serviceType) }
         if durationID.isEmpty { missing.append(HeadSpaContent.durationLabel) }
         if pressureID.isEmpty { missing.append(HeadSpaContent.pressureLabel) }

@@ -58,7 +58,7 @@ struct HeadSpaFormView: View {
             AdaptiveRow {
                 TextFieldRow(title: HeadSpaContent.fullName, text: $answers.fullName, required: true,
                              contentType: .name, capitalization: .words)
-                TextFieldRow(title: HeadSpaContent.phone, text: $answers.phone, required: true,
+                TextFieldRow(title: HeadSpaContent.phone, text: $answers.phone,
                              keyboard: .phonePad, contentType: .telephoneNumber)
             }
             AdaptiveRow {

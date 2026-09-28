@@ -34,7 +34,6 @@ struct MassageAnswers: FormAnswers {
     func missingItems(businessName: String) -> [L] {
         var missing: [L] = []
         if fullName.trimmed.isEmpty { missing.append(MassageContent.fullName) }
-        if phone.filter(\.isNumber).count < 8 { missing.append(MassageContent.phone) }
         if serviceID.isEmpty { missing.append(MassageContent.serviceType) }
         if durationID.isEmpty { missing.append(MassageContent.durationLabel) }
         if pressureID.isEmpty { missing.append(MassageContent.pressureLabel) }

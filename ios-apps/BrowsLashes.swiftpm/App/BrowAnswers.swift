@@ -36,8 +36,6 @@ struct BrowAnswers: FormAnswers {
     var missingItems: [L] {
         var missing: [L] = []
         if fullName.trimmed.isEmpty { missing.append(SerenContent.fullName) }
-        if phone.filter(\.isNumber).count < 8 { missing.append(SerenContent.phone) }
-        if dateOfBirth == nil { missing.append(SerenContent.dateOfBirth) }
         if selectedServices.isEmpty { missing.append(SerenContent.registeredService) }
         if contraindications.isEmpty && !noContraindications {
             missing.append(L("Chống chỉ định: đánh dấu mục phù hợp hoặc “Không có”",

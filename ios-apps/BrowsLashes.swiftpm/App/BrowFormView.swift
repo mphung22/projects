@@ -61,11 +61,11 @@ struct BrowFormView: View {
             AdaptiveRow {
                 TextFieldRow(title: SerenContent.fullName, text: $answers.fullName, required: true,
                              contentType: .name, capitalization: .words)
-                TextFieldRow(title: SerenContent.phone, text: $answers.phone, required: true,
+                TextFieldRow(title: SerenContent.phone, text: $answers.phone,
                              keyboard: .phonePad, contentType: .telephoneNumber)
             }
             AdaptiveRow {
-                OptionalDateField(title: SerenContent.dateOfBirth, date: $answers.dateOfBirth, required: true)
+                OptionalDateField(title: SerenContent.dateOfBirth, date: $answers.dateOfBirth)
                 TextFieldRow(title: SerenContent.idNumber, text: $answers.idNumber,
                              capitalization: .characters)
             }
