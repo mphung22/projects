@@ -310,7 +310,7 @@ private struct ServiceCard: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
-            .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.black.opacity(0.07), lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
