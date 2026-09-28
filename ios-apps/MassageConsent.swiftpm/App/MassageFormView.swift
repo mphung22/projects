@@ -4,6 +4,7 @@ struct MassageFormView: View {
     let onSubmit: (MassageAnswers) -> Void
 
     @AppStorage(SettingsKey.businessName) private var businessName = ""
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var answers = MassageAnswers()
     @State private var missing: [L] = []
 
@@ -63,27 +64,24 @@ struct MassageFormView: View {
     }
 
     private var infoFields: some View {
-        Grid(horizontalSpacing: 20, verticalSpacing: 18) {
-            GridRow {
+        VStack(alignment: .leading, spacing: 18) {
+            AdaptiveRow {
                 TextFieldRow(title: MassageContent.fullName, text: $answers.fullName, required: true,
                              contentType: .name, capitalization: .words)
                 TextFieldRow(title: MassageContent.phone, text: $answers.phone, required: true,
                              keyboard: .phonePad, contentType: .telephoneNumber)
             }
-            GridRow {
+            AdaptiveRow {
                 TextFieldRow(title: MassageContent.email, text: $answers.email,
                              keyboard: .emailAddress, contentType: .emailAddress, capitalization: .never)
                 OptionalDateField(title: MassageContent.dateOfBirth, date: $answers.dateOfBirth)
             }
-            GridRow {
+            AdaptiveRow {
                 TextFieldRow(title: MassageContent.emergencyContact, text: $answers.emergencyContact,
                              capitalization: .words)
                 DateFieldRow(title: MassageContent.serviceDate, date: $answers.serviceDate)
             }
-            GridRow {
-                StaffField(title: MassageContent.therapist, name: $answers.therapist)
-                Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-            }
+            StaffField(title: MassageContent.therapist, name: $answers.therapist)
         }
     }
 
@@ -106,7 +104,7 @@ struct MassageFormView: View {
         VStack(alignment: .leading, spacing: 8) {
             LText(MassageContent.healthPrompt, font: .headline)
                 .padding(.bottom, 4)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 20), GridItem(.flexible())], alignment: .leading, spacing: 4) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: sizeClass == .compact ? 1 : 2), alignment: .leading, spacing: 4) {
                 ForEach(MassageContent.conditions) { option in
                     CheckRow(text: option.label, isOn: $answers.conditions.contains(option.id))
                 }

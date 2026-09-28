@@ -58,22 +58,20 @@ struct BrowFormView: View {
 
     private var infoFields: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Grid(horizontalSpacing: 20, verticalSpacing: 18) {
-                GridRow {
-                    TextFieldRow(title: SerenContent.fullName, text: $answers.fullName, required: true,
-                                 contentType: .name, capitalization: .words)
-                    TextFieldRow(title: SerenContent.phone, text: $answers.phone, required: true,
-                                 keyboard: .phonePad, contentType: .telephoneNumber)
-                }
-                GridRow {
-                    OptionalDateField(title: SerenContent.dateOfBirth, date: $answers.dateOfBirth, required: true)
-                    TextFieldRow(title: SerenContent.idNumber, text: $answers.idNumber,
-                                 capitalization: .characters)
-                }
-                GridRow {
-                    DateFieldRow(title: SerenContent.serviceDate, date: $answers.serviceDate)
-                    StaffField(title: SerenContent.technician, name: $answers.technician)
-                }
+            AdaptiveRow {
+                TextFieldRow(title: SerenContent.fullName, text: $answers.fullName, required: true,
+                             contentType: .name, capitalization: .words)
+                TextFieldRow(title: SerenContent.phone, text: $answers.phone, required: true,
+                             keyboard: .phonePad, contentType: .telephoneNumber)
+            }
+            AdaptiveRow {
+                OptionalDateField(title: SerenContent.dateOfBirth, date: $answers.dateOfBirth, required: true)
+                TextFieldRow(title: SerenContent.idNumber, text: $answers.idNumber,
+                             capitalization: .characters)
+            }
+            AdaptiveRow {
+                DateFieldRow(title: SerenContent.serviceDate, date: $answers.serviceDate)
+                StaffField(title: SerenContent.technician, name: $answers.technician)
             }
             FieldLabel(title: SerenContent.registeredService, required: true)
             ChoiceChips(options: SerenContent.services, selection: $answers.serviceID, columns: 3)

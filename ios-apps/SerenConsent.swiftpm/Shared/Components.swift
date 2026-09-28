@@ -33,6 +33,7 @@ extension Binding where Value == Set<String> {
 // MARK: - Layout
 
 struct FormSection<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
     let number: Int
     let title: L
     @ViewBuilder var content: Content
@@ -49,7 +50,7 @@ struct FormSection<Content: View>: View {
             }
             content
         }
-        .padding(24)
+        .padding(sizeClass == .compact ? 16 : 24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
         .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
@@ -106,6 +107,20 @@ struct NoticeBanner: View {
     }
 }
 
+/// Side by side on iPad, stacked on iPhone.
+struct AdaptiveRow<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        if sizeClass == .compact {
+            VStack(alignment: .leading, spacing: 18) { content }
+        } else {
+            HStack(alignment: .top, spacing: 20) { content }
+        }
+    }
+}
+
 // MARK: - Inputs
 
 struct TextFieldRow: View {
@@ -135,6 +150,7 @@ struct TextFieldRow: View {
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color(.secondarySystemBackground)))
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -150,6 +166,7 @@ struct DateFieldRow: View {
                 .datePickerStyle(.compact)
                 .frame(minHeight: 50)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -188,6 +205,7 @@ struct OptionalDateField: View {
                 .foregroundStyle(Color.accentColor)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -218,6 +236,7 @@ struct StaffField: View {
                 .labelsHidden()
                 .frame(minHeight: 50)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -286,12 +305,13 @@ struct Chip: View {
 
 /// Single choice. An empty string means nothing selected yet.
 struct ChoiceChips: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
     let options: [Option]
     @Binding var selection: String
     var columns = 2
 
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: columns), spacing: 12) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: sizeClass == .compact ? min(columns, 2) : columns), spacing: 12) {
             ForEach(options) { option in
                 Chip(label: option.label, selected: selection == option.id) {
                     selection = option.id
@@ -302,12 +322,13 @@ struct ChoiceChips: View {
 }
 
 struct MultiChips: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
     let options: [Option]
     @Binding var selection: Set<String>
     var columns = 3
 
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: columns), spacing: 12) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: sizeClass == .compact ? min(columns, 2) : columns), spacing: 12) {
             ForEach(options) { option in
                 Chip(label: option.label, selected: selection.contains(option.id), multiSelect: true) {
                     if selection.contains(option.id) {
@@ -346,6 +367,7 @@ struct SubmitButton: View {
 /// plus a "please complete" alert listing anything missing.
 struct FormPage<Content: View>: View {
     @Environment(\.languageMode) private var mode
+    @Environment(\.horizontalSizeClass) private var sizeClass
     let title: L
     @Binding var missing: [L]
     @ViewBuilder var content: Content
@@ -353,7 +375,7 @@ struct FormPage<Content: View>: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) { content }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, sizeClass == .compact ? 12 : 32)
                 .padding(.vertical, 24)
                 .frame(maxWidth: 920)
                 .frame(maxWidth: .infinity)
