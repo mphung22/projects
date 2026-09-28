@@ -1,6 +1,6 @@
 # iPad & iPhone customer forms: Seren Brows and Massage
 
-These are two apps that replace the paper forms. They are designed for iPad and also work on iPhone. The customer fills in the form and signs on the device. The app then saves a signed, bilingual (Vietnamese and English) PDF on the iPad.
+These are two apps that replace the paper forms. They are designed for iPad and also work on iPhone. The customer fills in the form and signs on the device. The app then saves a signed, bilingual (Vietnamese and English) PDF on that device.
 
 | App | Folder | Form |
 |---|---|---|
