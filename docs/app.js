@@ -33,7 +33,8 @@ const T = {
   tickPrompt: L('Vui lòng đánh dấu nếu bạn có bất kỳ tình trạng nào dưới đây:',
                 'Please tick any of the following that apply to you:'),
   healthMissing: L('Sức khoẻ: đánh dấu mục phù hợp hoặc “Không có”', 'Health: tick what applies or “None of the above”'),
-  agreeMissing: L('Đánh dấu tất cả các mục Cam kết', 'Tick every agreement box'),
+  agreeMissing: L('Đánh dấu ô đồng ý các cam kết', 'Tick the box to agree to the statements'),
+  agreeAll: L('Tôi đã đọc và đồng ý với tất cả các cam kết trên.', 'I have read and agree to all of the above.'),
   privacy: L(
     `Tôi đồng ý để ${BUSINESS} lưu trữ thông tin trong phiếu này (bao gồm thông tin sức khoẻ và chữ ký) để phục vụ tôi an toàn. Thông tin được bảo mật và không chia sẻ cho bên thứ ba.`,
     `I agree to ${BUSINESS} storing the information in this form (including health information and my signature) to look after me safely. It is kept confidential and not shared with third parties.`),
@@ -58,28 +59,27 @@ const photoConsent = {
 const signatureSection = {
   title: L('Chữ ký', 'Signature'),
   items: [
-    { type: 'agree', key: 'privacy_consent', label: T.privacy },
     { type: 'signature', key: 'signature', label: T.signature, required: true },
   ],
 };
 
-const wellnessAgreements = (activity) => [
-  { type: 'agree', key: 'agree_accurate', label: L(
-    'Tôi xác nhận thông tin sức khoẻ trên là chính xác và sẽ báo ngay cho kỹ thuật viên nếu có thay đổi.',
-    'I confirm the health information above is accurate and I will tell my therapist about any changes.') },
-  { type: 'agree', key: 'agree_not_medical', label: L(
-    `Tôi hiểu ${activity.vi} nhằm mục đích thư giãn và chăm sóc sức khoẻ, không thay thế cho chẩn đoán hay điều trị y khoa.`,
-    `I understand ${activity.en} is for relaxation and wellness and is not a substitute for medical diagnosis or treatment.`) },
-  { type: 'agree', key: 'agree_communicate', label: L(
-    'Tôi sẽ báo cho kỹ thuật viên nếu cảm thấy khó chịu hoặc đau, và có quyền dừng buổi dịch vụ bất cứ lúc nào.',
-    'I will tell my therapist if I feel any discomfort or pain, and I may stop the session at any time.') },
-  { type: 'agree', key: 'agree_conduct', label: L(
-    'Tôi hiểu rằng mọi hành vi hoặc yêu cầu không phù hợp sẽ khiến buổi dịch vụ kết thúc ngay và vẫn phải thanh toán đầy đủ.',
-    'I understand that any inappropriate behaviour or requests will end the session immediately, with full payment due.') },
-  { type: 'agree', key: 'agree_release', label: L(
-    `Tôi tự nguyện sử dụng dịch vụ và không yêu cầu ${BUSINESS} chịu trách nhiệm về các vấn đề phát sinh do thông tin sức khoẻ không chính xác hoặc không được khai báo.`,
-    `I receive this service voluntarily and release ${BUSINESS} from liability for issues arising from inaccurate or undisclosed health information.`) },
-];
+/** All of a form's statements, agreed to with a single tick. */
+const consents = (statements, extra = {}) => ({
+  type: 'consents', key: 'consent_all', dynamic: true, statements: [...statements, T.privacy], ...extra,
+});
+
+const wellnessAgreements = (activity) => [consents([
+  L('Tôi xác nhận thông tin sức khoẻ trên là chính xác và sẽ báo ngay cho kỹ thuật viên nếu có thay đổi.',
+    'I confirm the health information above is accurate and I will tell my therapist about any changes.'),
+  L(`Tôi hiểu ${activity.vi} nhằm mục đích thư giãn và chăm sóc sức khoẻ, không thay thế cho chẩn đoán hay điều trị y khoa.`,
+    `I understand ${activity.en} is for relaxation and wellness and is not a substitute for medical diagnosis or treatment.`),
+  L('Tôi sẽ báo cho kỹ thuật viên nếu cảm thấy khó chịu hoặc đau, và có quyền dừng buổi dịch vụ bất cứ lúc nào.',
+    'I will tell my therapist if I feel any discomfort or pain, and I may stop the session at any time.'),
+  L('Tôi hiểu rằng mọi hành vi hoặc yêu cầu không phù hợp sẽ khiến buổi dịch vụ kết thúc ngay và vẫn phải thanh toán đầy đủ.',
+    'I understand that any inappropriate behaviour or requests will end the session immediately, with full payment due.'),
+  L(`Tôi tự nguyện sử dụng dịch vụ và không yêu cầu ${BUSINESS} chịu trách nhiệm về các vấn đề phát sinh do thông tin sức khoẻ không chính xác hoặc không được khai báo.`,
+    `I receive this service voluntarily and release ${BUSINESS} from liability for issues arising from inaccurate or undisclosed health information.`),
+])];
 
 // ---------------------------------------------------------------------------
 // Services
@@ -177,12 +177,13 @@ const SERVICES = [
         ].filter(Boolean) },
       ] },
       { title: L('Cam Kết', 'Acknowledgement'), items: [
-        { type: 'agree', key: 'ack_informed', label: L('Tôi đã được tư vấn đầy đủ về quy trình, rủi ro và chăm sóc sau dịch vụ.', 'I have been fully informed about the procedure, risks, and aftercare.') },
-        { type: 'agree', key: 'ack_health', dynamic: true, resetWith: 'contraindications',
-          label: (s) => (s.contraindications?.ticked?.length
-            ? L('Tôi đã trao đổi các tình trạng đã đánh dấu ở trên với kỹ thuật viên và đồng ý thực hiện dịch vụ.', 'I have discussed the conditions ticked above with my technician and agree to proceed.')
-            : L('Tôi xác nhận không có chống chỉ định và không đang mang thai.', 'I confirm that I have no contraindications and I am not pregnant.')) },
         { ...photoConsent, label: L('Sử dụng hình ảnh cho mục đích quảng bá', 'Use of my images for promotional purposes') },
+        consents([
+          L('Tôi đã được tư vấn đầy đủ về quy trình, rủi ro và chăm sóc sau dịch vụ.', 'I have been fully informed about the procedure, risks, and aftercare.'),
+          (s) => (s.contraindications?.ticked?.length
+            ? L('Tôi đã trao đổi các tình trạng đã đánh dấu ở trên với kỹ thuật viên và đồng ý thực hiện dịch vụ.', 'I have discussed the conditions ticked above with my technician and agree to proceed.')
+            : L('Tôi xác nhận không có chống chỉ định và không đang mang thai.', 'I confirm that I have no contraindications and I am not pregnant.')),
+        ], { resetWith: 'contraindications' }),
       ] },
       signatureSection,
     ],
@@ -314,13 +315,14 @@ const SERVICES = [
         ] },
       ] },
       { title: L('Cam Kết', 'Acknowledgement'), items: [
-        { type: 'agree', key: 'ack_informed', label: L('Tôi đã được tư vấn về dịch vụ, sản phẩm sử dụng và cách chăm sóc sau dịch vụ.', 'I have been informed about the service, the products used and aftercare.') },
-        { type: 'agree', key: 'ack_health', dynamic: true, resetWith: 'conditions',
-          label: (s) => (s.conditions?.ticked?.length
-            ? L('Tôi đã trao đổi các tình trạng đã đánh dấu ở trên với kỹ thuật viên và đồng ý thực hiện dịch vụ.', 'I have discussed the conditions ticked above with my technician and agree to proceed.')
-            : L('Tôi xác nhận không có tình trạng sức khoẻ nào ở trên.', 'I confirm that none of the health conditions above apply to me.')) },
-        { type: 'agree', key: 'ack_risk', label: L('Tôi hiểu có thể xảy ra trầy xước nhẹ hoặc kích ứng với sản phẩm, và tiệm sẽ luôn cố gắng hạn chế tối đa.', 'I understand minor nicks or a reaction to products can occasionally happen, and the salon takes every care to prevent them.') },
         { ...photoConsent, label: L('Sử dụng hình ảnh móng cho mục đích quảng bá', 'Use of photos of my nails for promotional purposes') },
+        consents([
+          L('Tôi đã được tư vấn về dịch vụ, sản phẩm sử dụng và cách chăm sóc sau dịch vụ.', 'I have been informed about the service, the products used and aftercare.'),
+          (s) => (s.conditions?.ticked?.length
+            ? L('Tôi đã trao đổi các tình trạng đã đánh dấu ở trên với kỹ thuật viên và đồng ý thực hiện dịch vụ.', 'I have discussed the conditions ticked above with my technician and agree to proceed.')
+            : L('Tôi xác nhận không có tình trạng sức khoẻ nào ở trên.', 'I confirm that none of the health conditions above apply to me.')),
+          L('Tôi hiểu có thể xảy ra trầy xước nhẹ hoặc kích ứng với sản phẩm, và tiệm sẽ luôn cố gắng hạn chế tối đa.', 'I understand minor nicks or a reaction to products can occasionally happen, and the salon takes every care to prevent them.'),
+        ], { resetWith: 'conditions' }),
       ] },
       signatureSection,
     ],
@@ -448,6 +450,14 @@ function lt(l, tag = 'span', cls) {
   return h(tag, { class: cls }, l.vi, h('br'), h('span', { class: 'en' }, l.en));
 }
 
+/** An option's label, with its price on the right when it has one (e.g. price: '350.000₫'). */
+function optionLabel(o) {
+  if (!o.price) return lt(o.label);
+  return h('span', { class: 'with-price' }, lt(o.label), h('span', { class: 'price' }, o.price));
+}
+
+const withPrice = (o) => (o.price ? `${both(o.label)} (${o.price})` : both(o.label));
+
 function ageFrom(isoDate) {
   const birth = new Date(isoDate);
   if (Number.isNaN(birth.getTime())) return null;
@@ -562,7 +572,7 @@ function renderItem(item) {
               state[item.key] = state[item.key] === o.id ? '' : o.id;
               rerender((i) => i === item || i.dynamic);
             },
-          }, h('span', { class: 'box' }), lt(o.label)))));
+          }, h('span', { class: 'box' }), optionLabel(o)))));
     }
     case 'multi': {
       const selected = state[item.key] || [];
@@ -579,7 +589,7 @@ function renderItem(item) {
               }
               rerender((i) => i === item || i.key === item.exclusiveWith || i.dynamic);
             },
-          }, h('span', { class: 'box' }), lt(o.label)))));
+          }, h('span', { class: 'box' }), optionLabel(o)))));
     }
     case 'checklist': {
       const value = state[item.key] || { ticked: [], none: false };
@@ -613,11 +623,13 @@ function renderItem(item) {
     }
     case 'note':
       return h('div', { class: `notice ${item.tone || ''}` }, h('span', { class: 'i' }, item.tone === 'info' ? 'ℹ️' : '⚠️'), lt(item.text));
-    case 'agree':
-      return h('button', {
-        type: 'button', class: 'chip', 'aria-pressed': String(Boolean(state[item.key])), style: 'margin-top:8px',
-        onclick: () => { state[item.key] = !state[item.key]; rerender((i) => i === item); },
-      }, h('span', { class: 'box' }), lt(resolve(item.label)));
+    case 'consents':
+      return h('div', { class: 'consents' },
+        h('ul', { class: 'bullets' }, item.statements.map((l) => h('li', {}, lt(resolve(l))))),
+        h('button', {
+          type: 'button', class: 'chip agree-all', 'aria-pressed': String(Boolean(state[item.key])),
+          onclick: () => { state[item.key] = !state[item.key]; rerender((i) => i === item); },
+        }, h('span', { class: 'box' }), h('strong', {}, lt(T.agreeAll))));
     case 'signature':
       return renderSignature(item);
     default:
@@ -769,7 +781,7 @@ function validate() {
         break;
     }
   }
-  const agreements = allItems().filter((i) => i.type === 'agree');
+  const agreements = allItems().filter((i) => i.type === 'consents');
   if (agreements.some((i) => !state[i.key])) missing.push(T.agreeMissing);
   return { missing, bad };
 }
@@ -789,10 +801,12 @@ function formatValue(item) {
   switch (item.type) {
     case 'text': case 'textarea': case 'date':
       return (value || '').trim() || '—';
-    case 'single':
-      return optionsOf(item).find((o) => o.id === value)?.label ? both(optionsOf(item).find((o) => o.id === value).label) : '—';
+    case 'single': {
+      const chosen = optionsOf(item).find((o) => o.id === value);
+      return chosen ? withPrice(chosen) : '—';
+    }
     case 'multi':
-      return (value || []).length ? optionsOf(item).filter((o) => value.includes(o.id)).map((o) => both(o.label)).join(', ') : '—';
+      return (value || []).length ? optionsOf(item).filter((o) => value.includes(o.id)).map(withPrice).join(', ') : '—';
     case 'checklist': {
       if (!value) return '—';
       if (value.none) return both(T.noneApply);
@@ -809,7 +823,10 @@ function buildSummary() {
     lines.push(`${index + 1}. ${both(section.title)}`);
     for (const item of section.items) {
       if (item.show && !item.show(state)) continue;
-      if (item.type === 'agree') lines.push(`${state[item.key] ? '☑' : '☐'} ${both(resolve(item.label))}`);
+      if (item.type === 'consents') {
+        item.statements.forEach((l) => lines.push(`• ${both(resolve(l))}`));
+        lines.push(`${state[item.key] ? '☑' : '☐'} ${both(T.agreeAll)}`);
+      }
       else if (item.type === 'signature') lines.push(`${both(item.label)}: ${signaturePad?.drawn ? '✓ (signature.png)' : '—'}`);
       else if (item.key) lines.push(`${both(resolve(item.label) || T.tickPrompt)}: ${formatValue(item)}`);
     }

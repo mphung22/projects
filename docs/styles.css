@@ -130,6 +130,11 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 3px s
 [aria-pressed=true] .box::after, [aria-checked=true] .box::after { content: "✓"; }
 
 .check-list { display: grid; gap: 8px; }
+
+.consents ul.bullets { margin-bottom: 14px; }
+.chip.agree-all { padding: 14px 16px; }
+.with-price { display: flex; flex-direction: column; gap: 4px; }
+.price { font-weight: 700; color: var(--accent); white-space: nowrap; }
 .divider { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
 
 ul.bullets { margin: 0; padding-left: 20px; }
