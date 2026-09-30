@@ -142,7 +142,7 @@ const SERVICES = [
             heading(L('Nối mi — dịch vụ khác', 'Lashes — other services')),
             { id: 'lash_lift', label: L('Uốn mi', 'Lash lift'), price: '300.000₫' },
             { id: 'lash_design_lift', label: L('Uốn mi design', 'Design lash lift'), price: '350.000₫' },
-            { id: 'lash_lift_backtint', label: L('Uốn & nhuộm phủ đen', 'Lash lift & backtint'), price: '350.000₫' },
+            { id: 'lash_lift_backtint', label: L('Uốn & nhuộm phủ đen', 'Lash lift & backtint'), price: '400.000₫' },
             { id: 'lash_tinting', label: L('Phủ đen mi', 'Lash tinting'), price: '150.000₫' },
             { id: 'lash_straightening', label: L('Duỗi mi', 'Lash straightening'), price: '100.000₫' },
             { id: 'lash_lower', label: L('Nối mi dưới', 'Lower lash extension'), price: '100.000₫' },
