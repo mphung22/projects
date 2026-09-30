@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f7f4ee">
+  <title>Seren · Check-in</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <button class="link-button" id="back" hidden>‹ <span data-l="back"></span></button>
+    <div class="brand">S E R E N</div>
+    <select id="lang" aria-label="Ngôn ngữ / Language">
+      <option value="both">VI + EN</option>
+      <option value="vi">Tiếng Việt</option>
+      <option value="en">English</option>
+    </select>
+  </header>
+
+  <main id="app" aria-live="polite"></main>
+
+  <noscript><p class="card">Vui lòng bật JavaScript. / Please enable JavaScript.</p></noscript>
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
