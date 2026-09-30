@@ -190,7 +190,7 @@ function styleRows(sheet, firstRow, count) {
   sheet.getRange(firstRow, COL['Total (₫)'], count, 1).setNumberFormat('#,##0').setFontWeight('bold');
   sheet.getRange(firstRow, COL['Name'], count, 1).setFontWeight('bold');
   sheet.getRange(firstRow, COL['Consent'], count, 1).setHorizontalAlignment('center');
-  sheet.setRowHeights(firstRow, count, 28);
+  sheet.setRowHeightsForced(firstRow, count, 28); // stays one line even when the full form has line breaks
 }
 
 /** Headings, widths, frozen panes and the red highlight for health notes. Safe to run again. */
@@ -235,11 +235,14 @@ function isOldLayout(sheet) {
 }
 
 /**
- * Optional: run once from the editor to switch to the new layout straight away (otherwise it happens
- * by itself with the next check-in). The old tab is kept as "Check-ins (old layout)"; nothing is deleted.
+ * Optional: run from the editor to switch to the new layout straight away (otherwise it happens by itself
+ * with the next check-in) or to re-apply the formatting to every row. The old tab is kept as
+ * "Check-ins (old layout)"; nothing is deleted.
  */
 function tidyUp() {
-  setupSheet(getSheet());
+  const sheet = getSheet();
+  setupSheet(sheet);
+  if (sheet.getLastRow() > 1) styleRows(sheet, 2, sheet.getLastRow() - 1);
 }
 
 /** Copies rows from the old-layout tab into the new tab, newest first. */
