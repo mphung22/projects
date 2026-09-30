@@ -10,16 +10,19 @@ The single-service apps below are also available, e.g. if you get a paid Apple D
 |---|---|---|
 | **Brows and Lashes** | `BrowsLashes.swiftpm` | Brows lamination & tint (from the paper form), lash lift & tint, lash extensions |
 | **Massage** | `Massage.swiftpm` | Massage intake and consent |
-| **Nails** | `Nails.swiftpm` | Manicure, pedicure, gel, acrylic, nail art: health check, aftercare, photo consent |
-| **Head Spa** | `HeadSpa.swiftpm` | Head spa (gội đầu dưỡng sinh): scalp & hair, health check, consent |
+| **Nails** | `Nails.swiftpm` | Nail menu with prices, nail shape, aftercare, photo consent |
+| **Head Spa** | `HeadSpa.swiftpm` | Head spa (gội đầu dưỡng sinh): rituals and add-ons with prices, pressure, scalp & hair, consent |
 
 ## What the apps do
 
 - **Kiosk flow:** Welcome screen → customer taps **Bắt đầu / Start** → fills in the form → signs → sees a thank-you screen. After 10 seconds the app goes back to the welcome screen for the next customer.
-- **Bilingual:** The customer can pick Tiếng Việt + English (the default), Tiếng Việt only, or English only. The saved PDF always includes both languages.
+- **Languages:** The customer can pick Tiếng Việt + English (the default), Tiếng Việt, English, 中文, 한국어, Français, 日本語 or Русский (the languages on serensaigon.com). The saved PDF and CSV are always Vietnamese + English, and the staff area stays Vietnamese + English. The extra languages come from `Shared/Translations.swift`, which is generated from `docs/i18n.js` (see below). Health and consent translations have not been checked by native speakers yet.
+- **Price list and total:** Every form lists the services from serensaigon.com/pricing with their prices. A running total shows under the menu, and an itemised bill with the total appears before the customer signs; it is also saved in the PDF and CSV. Items priced in a range show the total as a range, and nail art has a "how many nails" counter.
+- **Massage oil:** Massage customers choose one of the four OILMART oils (Calming, Refreshing, Comforting, Anti-Aging). Choosing Calming shows a note that it contains almond oil.
+- **Health questions:** only Brows & Lashes asks about health (contraindications). Massage, Nails and Head Spa have no health section; the Massage and Head Spa consent asks the customer to tell the therapist about any health concerns before starting. Head Spa has no aftercare section.
 - **Signatures:** The customer signs with a finger or Apple Pencil. The technician's signature is optional.
 - **Checks before submit:** Required fields, the health questions, the consent checkboxes and the customer signature must all be filled in before the form can be submitted.
-- **Health warnings:** If a customer ticks a contraindication or health condition, the form asks them to tell the technician. In the staff area the record gets a ⚠️ mark so staff notice it.
+- **Health warnings (Brows & Lashes):** If a customer ticks a contraindication or health condition, the form asks them to tell the technician. In the staff area the record gets a ⚠️ mark so staff notice it.
   - *Brows:* if the date of birth shows the customer is under 16, "Under 16" is ticked automatically.
 - **Customer feedback and Google reviews:** a **Đánh giá dịch vụ / Leave feedback** button on the welcome screen. After the service, customers give 1–5 stars, can add a comment, and choose who looked after them. Then they see a QR code for your Google review page. Every customer sees the QR code whatever their rating, because Google doesn't allow asking only happy customers for reviews. Paste your review link in Settings (Google Business Profile › Ask for reviews / Get more reviews).
 - **Staff area** (the 🔒 icon at the bottom right of the welcome screen, protected by a PIN):
@@ -57,6 +60,12 @@ Turn on **Guided Access** (Settings › Accessibility › Guided Access) and the
 ## Data and privacy
 - Records are saved **only on that iPad**, in the app's private storage, with iOS data protection turned on.
 - Deleting the app deletes the records. **Export the CSV or PDFs regularly**, or keep the iPad backed up to iCloud.
+
+## Changing prices
+Prices are the `priceGroups` in each form's content file (e.g. `Nails.swiftpm/App/NailsContent.swift`) and the `price: '…₫'` fields in `docs/app.js` for the phone check-in. Change both when the price list on serensaigon.com changes, then run `./sync-shared.sh`.
+
+## Changing translations
+Edit `docs/i18n.js` (keyed by the English text), then run `python3 make-translations.py` (needs Node.js) and `./sync-shared.sh`. That rewrites `Shared/Translations.swift` for the iPad and the phone check-in uses `i18n.js` directly. When you add or change an English string anywhere, add its translations to `i18n.js`.
 
 ## Changing the wording or the forms
 - Brows & lashes: `BrowsLashes.swiftpm/App/SerenContent.swift`

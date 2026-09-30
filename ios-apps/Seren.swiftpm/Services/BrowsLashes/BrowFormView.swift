@@ -13,19 +13,30 @@ struct BrowFormView: View {
 
             FormSection(number: 1, title: SerenContent.infoTitle) { infoFields }
 
-            FormSection(number: 2, title: SerenContent.detailsTitle) {
-                InfoGroupList(groups: SerenContent.details(for: answers.selectedServices))
+            FormSection(number: 2, title: SerenContent.servicesTitle) {
+                VStack(alignment: .leading, spacing: 12) {
+                    FieldLabel(title: SerenContent.registeredService, required: true)
+                    PriceMenuView(groups: SerenContent.priceGroups, selection: $answers.prices)
+                }
             }
 
-            FormSection(number: 3, title: SerenContent.contraTitle) { contraindications }
-
-            FormSection(number: 4, title: SerenContent.aftercareTitle) {
-                InfoGroupList(groups: SerenContent.aftercare(for: answers.selectedServices))
+            FormSection(number: 3, title: SerenContent.detailsTitle) {
+                InfoGroupList(groups: SerenContent.details(for: answers.categoryIDs))
             }
 
-            FormSection(number: 5, title: SerenContent.ackTitle) { acknowledgement }
+            FormSection(number: 4, title: SerenContent.contraTitle) { contraindications }
 
-            FormSection(number: 6, title: SerenContent.signTitle) { signatures }
+            FormSection(number: 5, title: SerenContent.aftercareTitle) {
+                InfoGroupList(groups: SerenContent.aftercare(for: answers.categoryIDs))
+            }
+
+            FormSection(number: 6, title: SerenContent.ackTitle) { acknowledgement }
+
+            FormSection(number: 7, title: PriceText.summaryTitle) {
+                PriceSummaryView(groups: SerenContent.priceGroups, selection: answers.prices)
+            }
+
+            FormSection(number: 8, title: SerenContent.signTitle) { signatures }
 
             SubmitButton(title: SerenContent.submit, action: submit)
                 .padding(.bottom, 40)
@@ -73,8 +84,6 @@ struct BrowFormView: View {
                 DateFieldRow(title: SerenContent.serviceDate, date: $answers.serviceDate)
                 StaffField(title: SerenContent.technician, name: $answers.technician)
             }
-            FieldLabel(title: SerenContent.registeredService, required: true)
-            MultiChips(options: SerenContent.services, selection: $answers.selectedServices, columns: 3)
         }
     }
 
@@ -94,7 +103,7 @@ struct BrowFormView: View {
             }
             NoticeBanner(text: SerenContent.patchTestNote, systemImage: "info.circle.fill", tint: .blue)
                 .padding(.top, 8)
-            if SerenContent.includesLashes(answers.selectedServices) {
+            if SerenContent.includesLashes(answers.categoryIDs) {
                 NoticeBanner(text: SerenContent.contactLensNote, systemImage: "eye", tint: .blue)
             }
         }

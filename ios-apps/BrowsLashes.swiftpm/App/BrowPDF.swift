@@ -21,7 +21,7 @@ extension BrowAnswers {
         pdf.field(SerenContent.technician, technician)
 
         pdf.heading(2, SerenContent.detailsTitle)
-        pdf.groups(SerenContent.details(for: selectedServices))
+        pdf.groups(SerenContent.details(for: categoryIDs))
 
         pdf.heading(3, SerenContent.contraTitle)
         if let healthAlert {
@@ -32,12 +32,12 @@ extension BrowAnswers {
         }
         pdf.check(noContraindications, SerenContent.noneApply)
         pdf.bilingual(SerenContent.patchTestNote)
-        if SerenContent.includesLashes(selectedServices) {
+        if SerenContent.includesLashes(categoryIDs) {
             pdf.bilingual(SerenContent.contactLensNote)
         }
 
         pdf.heading(4, SerenContent.aftercareTitle)
-        pdf.groups(SerenContent.aftercare(for: selectedServices))
+        pdf.groups(SerenContent.aftercare(for: categoryIDs))
 
         pdf.heading(5, SerenContent.ackTitle)
         pdf.check(ackInformed, SerenContent.ackInformed)
@@ -47,7 +47,10 @@ extension BrowAnswers {
             pdf.check(photoConsent == option.id, option.label)
         }
 
-        pdf.heading(6, SerenContent.signTitle)
+        pdf.heading(6, PriceText.summaryTitle)
+        pdf.priceSummary(groups: SerenContent.priceGroups, selection: prices)
+
+        pdf.heading(7, SerenContent.signTitle)
         pdf.space(6)
         let day = Formatters.date.string(from: submittedAt)
         pdf.signatures([

@@ -20,29 +20,19 @@ extension HeadSpaAnswers {
         pdf.field(HeadSpaContent.therapist, therapist)
 
         pdf.heading(2, HeadSpaContent.serviceTitle)
-        pdf.field(HeadSpaContent.serviceType, serviceLabel?.both ?? "")
-        pdf.field(HeadSpaContent.durationLabel, durationLabel?.both ?? "")
+        pdf.field(HeadSpaContent.serviceType, priceLines.isEmpty
+            ? legacyServiceLabels.map(\.both).joined(separator: ", ")
+            : priceLines.map(\.label.both).joined(separator: ", "))
         pdf.field(HeadSpaContent.pressureLabel, pressureLabel?.both ?? "")
 
         pdf.heading(3, HeadSpaContent.scalpTitle)
         pdf.field(HeadSpaContent.scalpPrompt,
                   HeadSpaContent.scalpConcerns.labels(for: scalpConcerns).map(\.both).joined(separator: ", "))
 
-        pdf.heading(4, HeadSpaContent.healthTitle)
-        if !conditionLabels.isEmpty {
-            pdf.alert(conditionLabels.map(\.both).joined(separator: " • "))
-        }
-        for option in HeadSpaContent.conditions {
-            pdf.check(conditions.contains(option.id), option.label)
-        }
-        pdf.check(noConditions, HeadSpaContent.noneApply)
-        pdf.field(HeadSpaContent.healthDetails, healthDetails)
-        pdf.field(HeadSpaContent.medications, medications)
+        pdf.heading(4, PriceText.summaryTitle)
+        pdf.priceSummary(groups: HeadSpaContent.priceGroups, selection: prices)
 
-        pdf.heading(5, HeadSpaContent.aftercareTitle)
-        HeadSpaContent.aftercare.forEach(pdf.bullet)
-
-        pdf.heading(6, HeadSpaContent.consentTitle)
+        pdf.heading(5, HeadSpaContent.consentTitle)
         for option in HeadSpaContent.agreements(businessName: businessName) {
             pdf.check(agreements.contains(option.id), option.label)
         }

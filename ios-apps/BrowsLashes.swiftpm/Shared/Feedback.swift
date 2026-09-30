@@ -159,6 +159,7 @@ struct FeedbackFormView: View {
 /// Shown after every rating, so all customers are invited equally, as Google's review policy requires.
 struct FeedbackThanksScreen: View {
     let onDone: () -> Void
+    @Environment(\.languageMode) private var mode
     @AppStorage(SettingsKey.googleReviewURL) private var reviewLink = SettingsKey.defaultGoogleReviewURL
 
     var body: some View {
@@ -166,16 +167,13 @@ struct FeedbackThanksScreen: View {
             Image(systemName: "heart.fill")
                 .font(.system(size: 64))
                 .foregroundStyle(Color.accentColor)
-            Text("Cảm ơn quý khách!").font(.system(size: 40, weight: .semibold, design: .serif))
-            Text("Thank you for your feedback!").font(.title2).italic().foregroundStyle(.secondary)
+            LHeading(l: L("Cảm ơn quý khách!", "Thank you for your feedback!"),
+                     font: .system(size: 40, weight: .semibold, design: .serif), secondaryFont: .title2)
 
             if let url = googleReviewURL(reviewLink) {
                 VStack(spacing: 14) {
-                    VStack(spacing: 2) {
-                        Text("Quét mã để đánh giá chúng tôi trên Google").font(.title3.weight(.semibold))
-                        Text("Scan with your phone camera to review us on Google").italic().foregroundStyle(.secondary)
-                    }
-                    .multilineTextAlignment(.center)
+                    LHeading(l: L("Quét mã để đánh giá chúng tôi trên Google", "Scan with your phone camera to review us on Google"),
+                             font: .title3.weight(.semibold), secondaryFont: .body)
                     QRCodeView(text: url.absoluteString)
                         .frame(width: 260, height: 260)
                         .padding(16)
@@ -188,7 +186,7 @@ struct FeedbackThanksScreen: View {
                 .padding(.top, 8)
             }
 
-            Button("Xong / Done", action: onDone)
+            Button(L("Xong", "Done").text(mode), action: onDone)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .padding(.top, 12)

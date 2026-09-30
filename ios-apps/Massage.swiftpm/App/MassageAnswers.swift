@@ -9,16 +9,17 @@ struct MassageAnswers: FormAnswers {
     var serviceDate = Date()
     var therapist = ""
 
+    /// Items chosen from the price list (id → quantity). Optional so records saved by older versions still open.
+    var priceSelection: PriceSelection?
+    /// Massage oil id; optional for the same reason.
+    var oilID: String?
+    /// Massage type and duration from forms saved before the price list was added.
     var serviceID = ""
     var durationID = ""
     var pressureID = ""
     var focusAreas: Set<String> = []
     var avoidAreas: Set<String> = []
 
-    var conditions: Set<String> = []
-    var noConditions = false
-    var healthDetails = ""
-    var medications = ""
 
     /// Ids of the consent statements the customer ticked.
     var agreements: Set<String> = []
@@ -26,21 +27,33 @@ struct MassageAnswers: FormAnswers {
     var customerSignature: Data?
     var therapistSignature: Data?
 
-    var serviceLabel: L? { MassageContent.services.label(for: serviceID) }
-    var durationLabel: L? { MassageContent.durations.label(for: durationID) }
+    var prices: PriceSelection {
+        get { priceSelection ?? [:] }
+        set { priceSelection = newValue }
+    }
+    var oil: String {
+        get { oilID ?? "" }
+        set { oilID = newValue.isEmpty ? nil : newValue }
+    }
+    var priceLines: [PriceLine] { MassageContent.priceGroups.lines(for: prices) }
+    var total: PriceTotal { MassageContent.priceGroups.total(for: prices) }
+    var needsOil: Bool { !MassageContent.massageIDs.isDisjoint(with: prices.keys) }
+    var oilLabel: L? { MassageContent.oils.label(for: oil) }
+
     var pressureLabel: L? { MassageContent.pressures.label(for: pressureID) }
-    var conditionLabels: [L] { MassageContent.conditions.labels(for: conditions) }
+
+    /// Massage type + duration saved by older versions of the form.
+    var legacyServiceLabels: [L] {
+        [MassageContent.legacyServices.label(for: serviceID), MassageContent.legacyDurations.label(for: durationID)]
+            .compactMap { $0 }
+    }
 
     func missingItems(businessName: String) -> [L] {
         var missing: [L] = []
         if fullName.trimmed.isEmpty { missing.append(MassageContent.fullName) }
-        if serviceID.isEmpty { missing.append(MassageContent.serviceType) }
-        if durationID.isEmpty { missing.append(MassageContent.durationLabel) }
+        if priceLines.isEmpty { missing.append(MassageContent.serviceType) }
+        if needsOil && oil.isEmpty { missing.append(MassageContent.oilLabel) }
         if pressureID.isEmpty { missing.append(MassageContent.pressureLabel) }
-        if conditions.isEmpty && !noConditions {
-            missing.append(L("Sức khoẻ: đánh dấu mục phù hợp hoặc “Không có”",
-                             "Health: tick what applies or “None of the above”"))
-        }
         let allAgreements = Set(MassageContent.agreements(businessName: businessName).map(\.id))
         if !allAgreements.isSubset(of: agreements) {
             missing.append(L("Đánh dấu ô đồng ý các cam kết", "Tick the box to agree to the statements"))
@@ -55,30 +68,32 @@ struct MassageAnswers: FormAnswers {
     var customerPhone: String { phone }
 
     var serviceSummary: String {
-        [serviceLabel?.en, durationLabel?.en].compactMap { $0 }.joined(separator: ", ")
+        if priceLines.isEmpty { return legacyServiceLabels.map(\.en).joined(separator: ", ") }
+        var parts = [MassageContent.priceGroups.summary(for: prices)]
+        if let oilLabel { parts.append("Oil: \(oilLabel.en)") }
+        parts.append(total.text)
+        return parts.joined(separator: " · ")
     }
 
-    var healthAlert: String? {
-        var notes = conditionLabels.map(\.both)
-        if !healthDetails.trimmed.isEmpty { notes.append(healthDetails.trimmed) }
-        return notes.isEmpty ? nil : notes.joined(separator: " • ")
-    }
+    var healthAlert: String? { nil }
 
     static let csvHeader = [
         "Full name", "Phone", "Email", "Date of birth", "Emergency contact", "Service date", "Therapist",
-        "Service", "Duration", "Pressure", "Focus areas", "Avoid areas", "Health conditions",
-        "Health details", "Medications",
+        "Services", "Total (VND)", "Oil", "Pressure", "Focus areas", "Avoid areas",
     ]
 
     var csvRow: [String] {
         [
             fullName, phone, email, dateOfBirth.dayString, emergencyContact,
             Formatters.date.string(from: serviceDate), therapist,
-            serviceLabel?.en ?? "", durationLabel?.en ?? "", pressureLabel?.en ?? "",
+            priceLines.isEmpty
+                ? legacyServiceLabels.map(\.en).joined(separator: ", ")
+                : MassageContent.priceGroups.csvItems(for: prices),
+            priceLines.isEmpty ? "" : total.text,
+            oilLabel?.en ?? "",
+            pressureLabel?.en ?? "",
             MassageContent.areas.labels(for: focusAreas).map(\.en).joined(separator: "; "),
             MassageContent.areas.labels(for: avoidAreas).map(\.en).joined(separator: "; "),
-            conditionLabels.map(\.en).joined(separator: "; "),
-            healthDetails, medications,
         ]
     }
 }

@@ -388,15 +388,20 @@ struct MultiChips: View {
 }
 
 struct SubmitButton: View {
+    @Environment(\.languageMode) private var mode
     let title: L
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                Text(title.vi).font(.title2.weight(.semibold))
-                if title.en != title.vi {
-                    Text(title.en).font(.subheadline)
+                if mode.isExtra {
+                    Text(title.text(mode)).font(.title2.weight(.semibold))
+                } else {
+                    Text(title.vi).font(.title2.weight(.semibold))
+                    if title.en != title.vi {
+                        Text(title.en).font(.subheadline)
+                    }
                 }
             }
             .foregroundStyle(.white)

@@ -4,7 +4,6 @@ struct HeadSpaFormView: View {
     let onSubmit: (HeadSpaAnswers) -> Void
 
     @AppStorage(SettingsKey.businessName) private var businessName = ""
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var answers = HeadSpaAnswers()
     @State private var missing: [L] = []
 
@@ -23,22 +22,14 @@ struct HeadSpaFormView: View {
                 }
             }
 
-            FormSection(number: 4, title: HeadSpaContent.healthTitle) { health }
-
-            FormSection(number: 5, title: HeadSpaContent.aftercareTitle) {
-                BulletList(items: HeadSpaContent.aftercare)
+            FormSection(number: 4, title: PriceText.summaryTitle) {
+                PriceSummaryView(groups: HeadSpaContent.priceGroups, selection: answers.prices)
             }
 
-            FormSection(number: 6, title: HeadSpaContent.consentTitle) { consent }
+            FormSection(number: 5, title: HeadSpaContent.consentTitle) { consent }
 
             SubmitButton(title: HeadSpaContent.submit, action: submit)
                 .padding(.bottom, 40)
-        }
-        .onChange(of: answers.noConditions) { _, none in
-            if none { answers.conditions.removeAll() }
-        }
-        .onChange(of: answers.conditions) { _, ticked in
-            if !ticked.isEmpty { answers.noConditions = false }
         }
     }
 
@@ -78,38 +69,11 @@ struct HeadSpaFormView: View {
     private var serviceChoices: some View {
         VStack(alignment: .leading, spacing: 12) {
             FieldLabel(title: HeadSpaContent.serviceType, required: true)
-            ChoiceChips(options: HeadSpaContent.services, selection: $answers.serviceID, columns: 3)
-
-            FieldLabel(title: HeadSpaContent.durationLabel, required: true)
-                .padding(.top, 12)
-            ChoiceChips(options: HeadSpaContent.durations, selection: $answers.durationID, columns: 4)
+            PriceMenuView(groups: HeadSpaContent.priceGroups, selection: $answers.prices)
 
             FieldLabel(title: HeadSpaContent.pressureLabel, required: true)
                 .padding(.top, 12)
             ChoiceChips(options: HeadSpaContent.pressures, selection: $answers.pressureID, columns: 4)
-        }
-    }
-
-    private var health: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LText(HeadSpaContent.healthPrompt, font: .headline)
-                .padding(.bottom, 4)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: sizeClass == .compact ? 1 : 2), alignment: .leading, spacing: 4) {
-                ForEach(HeadSpaContent.conditions) { option in
-                    CheckRow(text: option.label, isOn: $answers.conditions.contains(option.id))
-                }
-            }
-            Divider().padding(.vertical, 4)
-            CheckRow(text: HeadSpaContent.noneApply, isOn: $answers.noConditions)
-
-            if !answers.conditions.isEmpty {
-                NoticeBanner(text: HeadSpaContent.healthWarning)
-                    .padding(.vertical, 8)
-            }
-
-            TextFieldRow(title: HeadSpaContent.healthDetails, text: $answers.healthDetails, multiline: true)
-                .padding(.top, 8)
-            TextFieldRow(title: HeadSpaContent.medications, text: $answers.medications, multiline: true)
         }
     }
 

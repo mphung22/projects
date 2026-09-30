@@ -11,6 +11,8 @@ struct BrowAnswers: FormAnswers {
     /// Optional so records saved by the older version still open.
     var serviceIDs: Set<String>? = []
     var technician = ""
+    /// Items chosen from the price list (id → quantity). Optional so records saved by older versions still open.
+    var priceSelection: PriceSelection?
 
     var contraindications: Set<String> = []
     var noContraindications = false
@@ -28,7 +30,18 @@ struct BrowAnswers: FormAnswers {
         get { serviceIDs ?? (serviceID.isEmpty ? [] : [serviceID]) }
         set { serviceIDs = newValue }
     }
-    var serviceLabels: [L] { SerenContent.services.labels(for: selectedServices) }
+    var prices: PriceSelection {
+        get { priceSelection ?? [:] }
+        set { priceSelection = newValue }
+    }
+    var priceLines: [PriceLine] { SerenContent.priceGroups.lines(for: prices) }
+    var total: PriceTotal { SerenContent.priceGroups.total(for: prices) }
+    /// Everything chosen, old-style ticks and price-list items, for picking the info and aftercare to show.
+    var categoryIDs: Set<String> { selectedServices.union(prices.keys) }
+    /// Chosen services: price-list items, or the old-style ticks on older records.
+    var serviceLabels: [L] {
+        priceLines.isEmpty ? SerenContent.legacyServices.labels(for: selectedServices) : priceLines.map(\.label)
+    }
     var contraindicationLabels: [L] { SerenContent.contraindications.labels(for: contraindications) }
     var healthAckText: L { contraindications.isEmpty ? SerenContent.ackNoContraindications : SerenContent.ackDiscussed }
 
@@ -36,7 +49,7 @@ struct BrowAnswers: FormAnswers {
     var missingItems: [L] {
         var missing: [L] = []
         if fullName.trimmed.isEmpty { missing.append(SerenContent.fullName) }
-        if selectedServices.isEmpty { missing.append(SerenContent.registeredService) }
+        if priceLines.isEmpty { missing.append(SerenContent.registeredService) }
         if contraindications.isEmpty && !noContraindications {
             missing.append(L("Chống chỉ định: đánh dấu mục phù hợp hoặc “Không có”",
                              "Contraindications: tick what applies or “None of the above”"))
@@ -53,21 +66,26 @@ struct BrowAnswers: FormAnswers {
 
     var customerName: String { fullName }
     var customerPhone: String { phone }
-    var serviceSummary: String { serviceLabels.map(\.en).joined(separator: ", ") }
+    var serviceSummary: String {
+        let names = serviceLabels.map(\.en).joined(separator: ", ")
+        return priceLines.isEmpty ? names : names + " · " + total.text
+    }
 
     var healthAlert: String? {
         contraindicationLabels.isEmpty ? nil : contraindicationLabels.map(\.both).joined(separator: " • ")
     }
 
     static let csvHeader = [
-        "Full name", "Phone", "Date of birth", "ID/Passport", "Service date", "Service",
+        "Full name", "Phone", "Date of birth", "ID/Passport", "Service date", "Service", "Total (VND)",
         "Technician", "Contraindications", "Photo consent",
     ]
 
     var csvRow: [String] {
         [
             fullName, phone, dateOfBirth.dayString, idNumber, Formatters.date.string(from: serviceDate),
-            serviceSummary, technician,
+            priceLines.isEmpty ? serviceSummary : SerenContent.priceGroups.csvItems(for: prices),
+            priceLines.isEmpty ? "" : total.text,
+            technician,
             contraindicationLabels.map(\.en).joined(separator: "; "),
             photoConsent == "agree" ? "Agree" : "Do not agree",
         ]

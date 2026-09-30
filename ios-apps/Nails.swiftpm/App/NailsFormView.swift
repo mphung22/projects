@@ -4,7 +4,6 @@ struct NailsFormView: View {
     let onSubmit: (NailsAnswers) -> Void
 
     @AppStorage(SettingsKey.businessName) private var businessName = ""
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var answers = NailsAnswers()
     @State private var missing: [L] = []
 
@@ -16,26 +15,20 @@ struct NailsFormView: View {
 
             FormSection(number: 2, title: NailsContent.servicesTitle) { serviceChoices }
 
-            FormSection(number: 3, title: NailsContent.healthTitle) { health }
-
-            FormSection(number: 4, title: NailsContent.infoCareTitle) {
+            FormSection(number: 3, title: NailsContent.infoCareTitle) {
                 InfoGroupList(groups: [NailsContent.goodToKnow, NailsContent.aftercare])
             }
 
-            FormSection(number: 5, title: NailsContent.ackTitle) { acknowledgement }
+            FormSection(number: 4, title: NailsContent.ackTitle) { acknowledgement }
+
+            FormSection(number: 5, title: PriceText.summaryTitle) {
+                PriceSummaryView(groups: NailsContent.priceGroups, selection: answers.prices)
+            }
 
             FormSection(number: 6, title: NailsContent.signTitle) { signatures }
 
             SubmitButton(title: NailsContent.submit, action: submit)
                 .padding(.bottom, 40)
-        }
-        .onChange(of: answers.noConditions) { _, none in
-            if none { answers.conditions.removeAll() }
-        }
-        .onChange(of: answers.conditions) { _, ticked in
-            if !ticked.isEmpty { answers.noConditions = false }
-            // The health statement changes wording, so ask again.
-            answers.ackHealth = false
         }
     }
 
@@ -69,7 +62,7 @@ struct NailsFormView: View {
     private var serviceChoices: some View {
         VStack(alignment: .leading, spacing: 12) {
             FieldLabel(title: NailsContent.servicesLabel, required: true)
-            MultiChips(options: NailsContent.services, selection: $answers.services, columns: 3)
+            PriceMenuView(groups: NailsContent.priceGroups, selection: $answers.prices)
 
             FieldLabel(title: NailsContent.shapeLabel)
                 .padding(.top, 12)
@@ -80,37 +73,15 @@ struct NailsFormView: View {
         }
     }
 
-    private var health: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LText(NailsContent.healthPrompt, font: .headline)
-                .padding(.bottom, 4)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: sizeClass == .compact ? 1 : 2), alignment: .leading, spacing: 4) {
-                ForEach(NailsContent.conditions) { option in
-                    CheckRow(text: option.label, isOn: $answers.conditions.contains(option.id))
-                }
-            }
-            Divider().padding(.vertical, 4)
-            CheckRow(text: NailsContent.noneApply, isOn: $answers.noConditions)
-
-            if !answers.conditions.isEmpty {
-                NoticeBanner(text: NailsContent.healthWarning)
-                    .padding(.vertical, 8)
-            }
-
-            TextFieldRow(title: NailsContent.healthDetails, text: $answers.healthDetails, multiline: true)
-                .padding(.top, 8)
-        }
-    }
-
     private var acknowledgement: some View {
         VStack(alignment: .leading, spacing: 8) {
             FieldLabel(title: NailsContent.photoQuestion, required: true)
             ChoiceChips(options: NailsContent.photoOptions, selection: $answers.photoConsent)
             ConsentBlock(
-                statements: [NailsContent.ackInformed, answers.healthAckText, NailsContent.ackRisk],
+                statements: [NailsContent.ackInformed, NailsContent.ackRisk],
                 isOn: Binding(
-                    get: { answers.ackInformed && answers.ackHealth && answers.ackRisk },
-                    set: { answers.ackInformed = $0; answers.ackHealth = $0; answers.ackRisk = $0 }
+                    get: { answers.ackInformed && answers.ackRisk },
+                    set: { answers.ackInformed = $0; answers.ackRisk = $0 }
                 )
             )
             .padding(.top, 16)

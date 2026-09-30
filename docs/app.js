@@ -5,7 +5,13 @@
 'use strict';
 
 const BUSINESS = 'Seren';
-const L = (vi, en) => ({ vi, en });
+
+// Languages besides Vietnamese and English come from i18n.js, looked up by the English text.
+const I18N = window.SEREN_I18N || { languages: [], strings: {}, health: {} };
+const TRANSLATIONS = { ...I18N.strings, ...I18N.health };
+const EXTRA_LANGS = I18N.languages.map((l) => l.code);
+/** A customer-facing string: L('Tiếng Việt', 'English'), plus zh/ko/fr/ja/ru from i18n.js when available. */
+const L = (vi, en, more = {}) => ({ vi, en, ...(TRANSLATIONS[en] || {}), ...more });
 
 // ---------------------------------------------------------------------------
 // Shared wording
@@ -56,6 +62,12 @@ const photoConsent = {
   options: [{ id: 'agree', label: L('Đồng ý', 'Agree') }, { id: 'disagree', label: L('Không đồng ý', 'Do not agree') }],
 };
 
+/** Itemised bill with the total of every priced option chosen on the form. */
+const totalSection = {
+  title: L('Dịch vụ đã chọn & Tổng tiền', 'Your selection & total'),
+  items: [{ type: 'total', dynamic: true }],
+};
+
 const signatureSection = {
   title: L('Chữ ký', 'Signature'),
   items: [
@@ -68,9 +80,10 @@ const consents = (statements, extra = {}) => ({
   type: 'consents', key: 'consent_all', dynamic: true, statements: [...statements, T.privacy], ...extra,
 });
 
+// Massage and Head Spa have no health questions, so the customer agrees to raise any health concerns in person.
 const wellnessAgreements = (activity) => [consents([
-  L('Tôi xác nhận thông tin sức khoẻ trên là chính xác và sẽ báo ngay cho kỹ thuật viên nếu có thay đổi.',
-    'I confirm the health information above is accurate and I will tell my therapist about any changes.'),
+  L('Tôi xác nhận thông tin trên là chính xác và sẽ báo cho kỹ thuật viên trước khi bắt đầu nếu có vấn đề sức khoẻ cần lưu ý.',
+    'I confirm the information above is accurate and I will tell my therapist before we start about any health concerns.'),
   L(`Tôi hiểu ${activity.vi} nhằm mục đích thư giãn và chăm sóc sức khoẻ, không thay thế cho chẩn đoán hay điều trị y khoa.`,
     `I understand ${activity.en} is for relaxation and wellness and is not a substitute for medical diagnosis or treatment.`),
   L('Tôi sẽ báo cho kỹ thuật viên nếu cảm thấy khó chịu hoặc đau, và có quyền dừng buổi dịch vụ bất cứ lúc nào.',
@@ -85,10 +98,20 @@ const wellnessAgreements = (activity) => [consents([
 // Services
 // ---------------------------------------------------------------------------
 
-const BROW_IDS = ['lamination_tint', 'lamination', 'tint'];
-const LIFT_IDS = ['lash_lift_tint', 'lash_lift', 'lash_tint'];
+// Which service details and aftercare to show for the chosen Brows & Lashes services.
+const COMBO_IDS = ['combo_lift_lam', 'combo_lift_tint_lam'];
+const BROW_IDS = ['brow_cleanup', 'brow_wax', 'brow_black_tint', 'brow_colour_tint', 'brow_lamination', ...COMBO_IDS];
+const LIFT_IDS = ['lash_lift', 'lash_design_lift', 'lash_lift_backtint', 'lash_tinting', 'lash_straightening', ...COMBO_IDS];
+const EXT_IDS = ['set_classic', 'set_babe', 'set_wispy', 'set_kimk', 'set_cateye', 'set_volume', 'set_animefox', 'set_douyin',
+  'upgrade_natural', 'upgrade_matte', 'lash_lower', 'lash_removal', 'lash_colour_mix', 'lash_custom'];
 const pick = (selected, ids) => !selected.length || selected.some((id) => ids.includes(id));
-const hasLashes = (s) => pick(s.brow_services || [], [...LIFT_IDS, 'lash_ext']);
+const hasLashes = (s) => pick(s.brow_services || [], [...LIFT_IDS, ...EXT_IDS]);
+// Massage services that use oil, and the almond note for the Calming oil.
+const MASSAGE_OIL_IDS = ['body_60', 'body_90', 'body_120', 'neck_30', 'neck_60', 'foot_30', 'foot_60'];
+const ALMOND_NOTE = L('Dầu Calming có chứa dầu hạnh nhân. Nếu bạn dị ứng các loại hạt, vui lòng chọn loại dầu khác và báo cho kỹ thuật viên.',
+  'Calming oil contains almond oil. If you have a nut allergy, please choose another oil and tell your therapist.');
+/** A sub-heading inside a list of options. */
+const heading = (l) => ({ heading: l });
 
 const SERVICES = [
   {
@@ -102,14 +125,39 @@ const SERVICES = [
         F.technician(),
         { type: 'multi', key: 'brow_services', required: true,
           label: L('Dịch Vụ (chọn một hoặc nhiều)', 'Registered Services (choose one or more)'),
+          // Menu and prices from serensaigon.com/pricing (lashes, brows, combos).
           options: [
-            { id: 'lamination_tint', label: L('Uốn & Nhuộm chân mày', 'Brows Lamination + Tint') },
-            { id: 'lamination', label: L('Uốn chân mày', 'Brows Lamination') },
-            { id: 'tint', label: L('Nhuộm chân mày', 'Brows Tint') },
-            { id: 'lash_lift_tint', label: L('Uốn & Nhuộm mi', 'Lash Lift + Tint') },
-            { id: 'lash_lift', label: L('Uốn mi', 'Lash Lift') },
-            { id: 'lash_tint', label: L('Nhuộm mi', 'Lash Tint') },
-            { id: 'lash_ext', label: L('Nối mi', 'Lash Extensions') },
+            heading(L('Nối mi — các dáng mi', 'Lash extensions — sets')),
+            { id: 'set_classic', label: L('Classic · 8–15 mm', 'Classic · 8–15 mm'), price: '350.000₫' },
+            { id: 'set_babe', label: L('Babe · 8–15 mm', 'Babe · 8–15 mm'), price: '350.000₫' },
+            { id: 'set_wispy', label: L('Wispy · 9–15 mm', 'Wispy · 9–15 mm'), price: '450.000₫' },
+            { id: 'set_kimk', label: L('Kim K · 9–15 mm', 'Kim K · 9–15 mm'), price: '450.000₫' },
+            { id: 'set_cateye', label: L('Cat Eye · 9–15 mm', 'Cat Eye · 9–15 mm'), price: '450.000₫' },
+            { id: 'set_volume', label: L('Volume · 9–15 mm', 'Volume · 9–15 mm'), price: '450.000₫' },
+            { id: 'set_animefox', label: L('Anime Fox · 9–15 mm', 'Anime Fox · 9–15 mm'), price: '450.000₫' },
+            { id: 'set_douyin', label: L('Douyin · 8–15 mm', 'Douyin · 8–15 mm'), price: '450.000₫' },
+            heading(L('Nâng cấp chất liệu mi (cho mọi dáng mi)', 'Lash fibre upgrades (any set)')),
+            { id: 'upgrade_natural', label: L('Mi lông thật', 'Natural-fibre lashes'), price: '+ 100.000₫' },
+            { id: 'upgrade_matte', label: L('Mi mun', 'Matte black lashes'), price: '+ 100.000₫' },
+            heading(L('Nối mi — dịch vụ khác', 'Lashes — other services')),
+            { id: 'lash_lift', label: L('Uốn mi', 'Lash lift'), price: '300.000₫' },
+            { id: 'lash_design_lift', label: L('Uốn mi design', 'Design lash lift'), price: '350.000₫' },
+            { id: 'lash_lift_backtint', label: L('Uốn & nhuộm phủ đen', 'Lash lift & backtint'), price: '350.000₫' },
+            { id: 'lash_tinting', label: L('Phủ đen mi', 'Lash tinting'), price: '150.000₫' },
+            { id: 'lash_straightening', label: L('Duỗi mi', 'Lash straightening'), price: '100.000₫' },
+            { id: 'lash_lower', label: L('Nối mi dưới', 'Lower lash extension'), price: '100.000₫' },
+            { id: 'lash_removal', label: L('Tháo mi, vệ sinh', 'Lash removal & cleansing'), price: '60.000₫' },
+            { id: 'lash_colour_mix', label: L('Mi mix màu', 'Colour mix lashes'), price: '50.000 – 100.000₫' },
+            { id: 'lash_custom', label: L('Mẫu design riêng', 'Custom lash design'), price: '500.000₫' },
+            heading(L('Chân mày', 'Brows')),
+            { id: 'brow_cleanup', label: L('Làm sạch chân mày', 'Brow clean up'), price: '50.000₫' },
+            { id: 'brow_wax', label: L('Wax chân mày', 'Eyebrow wax'), price: '100.000₫' },
+            { id: 'brow_black_tint', label: L('Phủ đen chân mày', 'Brow black tint'), price: '150.000₫' },
+            { id: 'brow_colour_tint', label: L('Phủ màu chân mày', 'Brow colour tint'), price: '200.000₫' },
+            { id: 'brow_lamination', label: L('Định hình chân mày', 'Brow lamination'), price: '450.000₫' },
+            heading(L('Combo mi & mày', 'Lash & brow combo')),
+            { id: 'combo_lift_lam', label: L('Uốn mi + uốn chân mày', 'Lash lift + brow lamination'), price: '700.000₫' },
+            { id: 'combo_lift_tint_lam', label: L('Uốn mi & nhuộm phủ đen + uốn chân mày', 'Lash lift & backtint + brow lamination'), price: '750.000₫' },
           ] },
       ] },
       { title: L('Nội Dung Dịch Vụ', 'Service Details'), items: [
@@ -126,7 +174,7 @@ const SERVICES = [
             L('Thời gian: 45–60 phút', 'Time: 45–60 minutes'),
             L('Kết quả giữ: 6–8 tuần', 'Effect lasts: 6–8 weeks'),
           ] },
-          pick(s.brow_services || [], ['lash_ext']) && { title: L('Nối mi', 'Lash Extensions'), items: [
+          pick(s.brow_services || [], EXT_IDS) && { title: L('Nối mi', 'Lash Extensions'), items: [
             L('Nối mi là gắn từng sợi mi giả lên mi thật để mi dày và dài hơn.', 'Lash extensions attach individual synthetic lashes to your natural lashes for length and volume.'),
             L('Mắt nhắm trong suốt quá trình thực hiện.', 'Your eyes stay closed during the whole service.'),
             L('Thời gian: 90–120 phút', 'Time: 90–120 minutes'),
@@ -167,7 +215,7 @@ const SERVICES = [
             L('Không dùng kẹp bấm mi.', "Don't use an eyelash curler."),
             L('Có thể dùng serum dưỡng mi sau 24h.', 'Lash serum may be applied after 24 hours.'),
           ] },
-          pick(s.brow_services || [], ['lash_ext']) && { title: L('Nối mi', 'Lash Extensions'), items: [
+          pick(s.brow_services || [], EXT_IDS) && { title: L('Nối mi', 'Lash Extensions'), items: [
             L('Tránh nước và hơi nước trong 24h đầu.', 'Avoid water and steam for the first 24 hours.'),
             L('Không dùng tẩy trang hoặc sản phẩm có dầu quanh mắt.', 'Avoid oil-based makeup removers and products around the eyes.'),
             L('Không dụi, kéo, cắt mi hoặc dùng kẹp bấm mi.', "Don't rub, pull or cut your lashes, or use an eyelash curler."),
@@ -185,6 +233,7 @@ const SERVICES = [
             : L('Tôi xác nhận không có chống chỉ định và không đang mang thai.', 'I confirm that I have no contraindications and I am not pregnant.')),
         ], { resetWith: 'contraindications' }),
       ] },
+      totalSection,
       signatureSection,
     ],
   },
@@ -198,19 +247,27 @@ const SERVICES = [
         F.name, F.phone, F.email, F.dob(false), F.emergency, F.technician(L('Kỹ Thuật Viên (nếu biết)', 'Therapist (if known)')),
       ] },
       { title: L('Dịch vụ', 'Service'), items: [
-        { type: 'single', key: 'massage_type', required: true, label: L('Loại massage', 'Massage type'), options: [
-          { id: 'swedish', label: L('Massage thư giãn toàn thân', 'Swedish / Relaxation') },
-          { id: 'deep', label: L('Massage mô sâu', 'Deep Tissue') },
-          { id: 'hotstone', label: L('Massage đá nóng', 'Hot Stone') },
-          { id: 'aroma', label: L('Massage tinh dầu', 'Aromatherapy') },
-          { id: 'neck', label: L('Massage cổ vai gáy', 'Neck & Shoulders') },
-          { id: 'foot', label: L('Massage chân / bấm huyệt', 'Foot / Reflexology') },
-          { id: 'prenatal', label: L('Massage cho mẹ bầu', 'Prenatal') },
+        // Menu and prices from serensaigon.com/pricing (Body wellness, Body scrub & glow).
+        { type: 'multi', key: 'massage_services', required: true, label: L('Dịch vụ (chọn một hoặc nhiều)', 'Services (choose one or more)'), options: [
+          { id: 'body_60', label: L('Thư giãn body · 60 phút', 'Body therapy · 60 min'), price: '450.000₫' },
+          { id: 'body_90', label: L('Thư giãn body · 90 phút', 'Body therapy · 90 min'), price: '625.000₫' },
+          { id: 'body_120', label: L('Thư giãn body · 120 phút', 'Body therapy · 120 min'), price: '850.000₫' },
+          { id: 'neck_30', label: L('Cổ, vai, gáy · 30 phút', 'Neck & shoulder · 30 min'), price: '250.000₫' },
+          { id: 'neck_60', label: L('Cổ, vai, gáy · 60 phút', 'Neck & shoulder · 60 min'), price: '450.000₫' },
+          { id: 'foot_30', label: L('Chăm sóc chân · 30 phút', 'Foot · 30 min'), price: '280.000₫' },
+          { id: 'foot_60', label: L('Chăm sóc chân · 60 phút', 'Foot · 60 min'), price: '450.000₫' },
+          { id: 'body_scrub', label: L('Tẩy tế bào chết body · 30 phút', 'Body scrub · 30 min'), price: '296.000₫' },
+          { id: 'body_wrap', label: L('Dưỡng ủ body · 30 phút', 'Body wrap · 30 min'), price: '280.000₫' },
         ] },
-        { type: 'single', key: 'duration', required: true, label: L('Thời gian', 'Duration'), options: [
-          { id: '30', label: L('30 phút', '30 minutes') }, { id: '60', label: L('60 phút', '60 minutes') },
-          { id: '90', label: L('90 phút', '90 minutes') }, { id: '120', label: L('120 phút', '120 minutes') },
-        ] },
+        // OILMART professional spa oils. Needed when a massage (not only a scrub or wrap) is chosen.
+        { type: 'single', key: 'oil', dynamic: true, label: L('Chọn dầu massage', 'Choose your massage oil'),
+          required: (s) => (s.massage_services || []).some((id) => MASSAGE_OIL_IDS.includes(id)), options: [
+            { id: 'calming', label: L('Calming · Oải hương & Hạnh nhân', 'Calming · Lavender & Almond') },
+            { id: 'refreshing', label: L('Refreshing · Chanh vàng, Bưởi & Cam', 'Refreshing · Lemon, Grapefruit & Orange') },
+            { id: 'comforting', label: L('Comforting · Sả & Xô thơm', 'Comforting · Lemongrass & Clary Sage') },
+            { id: 'anti_aging', label: L('Anti-Aging · Gừng & Nhụy hoa nghệ tây', 'Anti-Aging · Ginger & Saffron') },
+          ] },
+        { type: 'note', tone: 'info', dynamic: true, show: (s) => s.oil === 'calming', text: ALMOND_NOTE },
         { type: 'single', key: 'pressure', required: true, label: L('Lực massage mong muốn', 'Preferred pressure'), options: [
           { id: 'light', label: L('Nhẹ', 'Light') }, { id: 'medium', label: L('Vừa', 'Medium') },
           { id: 'firm', label: L('Mạnh', 'Firm') }, { id: 'deep', label: L('Rất mạnh', 'Extra firm') },
@@ -219,28 +276,6 @@ const SERVICES = [
       { title: L('Vùng cơ thể', 'Body Areas'), items: [
         { type: 'multi', key: 'focus_areas', exclusiveWith: 'avoid_areas', label: L('Vùng muốn tập trung', 'Areas to focus on'), options: 'areas' },
         { type: 'multi', key: 'avoid_areas', exclusiveWith: 'focus_areas', label: L('Vùng muốn tránh', 'Areas to avoid'), options: 'areas' },
-      ] },
-      { title: L('Tình trạng sức khoẻ', 'Health Information'), items: [
-        { type: 'checklist', key: 'conditions',
-          warning: L('Vui lòng trao đổi với kỹ thuật viên trước khi bắt đầu. Kỹ thuật viên có thể điều chỉnh hoặc khuyên bạn hỏi ý kiến bác sĩ.',
-                     'Please talk to your therapist before starting. They may adjust the massage or recommend checking with your doctor.'),
-          options: [
-            { id: 'pregnant', label: L('Đang mang thai', 'Pregnant') },
-            { id: 'bloodPressure', label: L('Huyết áp cao hoặc thấp', 'High or low blood pressure') },
-            { id: 'heart', label: L('Bệnh tim mạch', 'Heart condition') },
-            { id: 'diabetes', label: L('Tiểu đường', 'Diabetes') },
-            { id: 'surgery', label: L('Phẫu thuật hoặc chấn thương trong 6 tháng gần đây', 'Surgery or injury in the last 6 months') },
-            { id: 'clots', label: L('Huyết khối hoặc giãn tĩnh mạch', 'Blood clots or varicose veins') },
-            { id: 'bloodThinners', label: L('Đang dùng thuốc chống đông máu', 'Taking blood thinners') },
-            { id: 'skin', label: L('Bệnh da, phát ban hoặc vết thương hở', 'Skin condition, rash or open wounds') },
-            { id: 'contagious', label: L('Sốt, cảm cúm hoặc bệnh truyền nhiễm', 'Fever, flu or contagious illness') },
-            { id: 'joints', label: L('Loãng xương, thoát vị đĩa đệm hoặc bệnh xương khớp', 'Osteoporosis, herniated disc or joint problems') },
-            { id: 'cancer', label: L('Ung thư hoặc đang điều trị', 'Cancer or currently in treatment') },
-            { id: 'epilepsy', label: L('Động kinh', 'Epilepsy / seizures') },
-            { id: 'allergy', label: L('Dị ứng dầu, kem, hạt hoặc hương liệu', 'Allergy to oils, lotions, nuts or fragrances') },
-          ] },
-        { type: 'textarea', key: 'health_details', label: L('Chi tiết thêm (nếu có)', 'Details (if any)') },
-        { type: 'textarea', key: 'medications', label: L('Thuốc đang sử dụng', 'Current medications') },
       ] },
       { title: L('Chăm sóc sau massage', 'Aftercare'), items: [
         { type: 'info', groups: () => [{ items: [
@@ -252,6 +287,7 @@ const SERVICES = [
         ] }] },
       ] },
       { title: L('Cam kết', 'Consent'), items: wellnessAgreements(L('massage', 'massage')) },
+      totalSection,
       signatureSection,
     ],
   },
@@ -263,16 +299,42 @@ const SERVICES = [
     sections: [
       { title: L('Thông tin khách hàng', 'Customer Information'), items: [F.name, F.phone, F.dob(false), F.technician()] },
       { title: L('Dịch vụ', 'Services'), items: [
+        // Menu and prices from serensaigon.com/pricing.
         { type: 'multi', key: 'nail_services', required: true, label: L('Dịch vụ (chọn một hoặc nhiều)', 'Services (choose one or more)'), options: [
-          { id: 'manicure', label: L('Làm móng tay', 'Manicure') },
-          { id: 'pedicure', label: L('Làm móng chân', 'Pedicure') },
-          { id: 'gel', label: L('Sơn gel', 'Gel polish') },
-          { id: 'regular', label: L('Sơn thường', 'Regular polish') },
-          { id: 'extensions', label: L('Đắp bột / Nối móng', 'Acrylic / Extensions') },
-          { id: 'builder', label: L('Gel cứng / Up móng', 'Builder gel / Overlay') },
-          { id: 'art', label: L('Vẽ / Đính đá', 'Nail art') },
-          { id: 'removal', label: L('Tháo gel / bột', 'Gel / acrylic removal') },
-          { id: 'spa', label: L('Chăm sóc da tay / chân', 'Hand / foot spa') },
+          heading(L('Bộ đặc trưng', 'Signature sets')),
+          { id: 'set_touch', label: L('Seren Touch — tay hoặc chân', 'Seren Touch — hands or feet'), price: '180.000₫' },
+          { id: 'set_glow', label: L('Seren Glow — bộ gel', 'Seren Glow — gel set'), price: '300.000₫' },
+          { id: 'set_bloom', label: L('Seren Bloom — bộ gel kèm design', 'Seren Bloom — gel set with design'), price: '450.000₫' },
+          { id: 'set_sole', label: L('Seren Sole — chăm sóc móng chân', 'Seren Sole — pedicure'), price: '300.000₫' },
+          { id: 'set_pure', label: L('Seren Pure — móng chân kèm dưỡng thư giãn chân 15 phút và sơn gel', 'Seren Pure — pedicure with 15-min foot relax and gel polish'), price: '550.000₫' },
+          { id: 'set_ritual', label: L('Seren Ritual — móng chân kèm dưỡng thư giãn chân 15 phút', 'Seren Ritual — pedicure with 15-min foot relax'), price: '450.000₫' },
+          heading(L('Chăm sóc móng', 'Nail care')),
+          { id: 'care_reshape', label: L('Sửa form móng', 'Nail reshape'), price: '30.000₫' },
+          { id: 'care_gel_removal', label: L('Tháo gel / cứng móng', 'Gel / hard gel removal'), price: '30.000 – 50.000₫' },
+          { id: 'care_removal', label: L('Tháo móng úp, gel đắp, bột', 'Tips, gel or acrylic removal'), price: '50.000 – 100.000₫' },
+          { id: 'care_skin', label: L('Làm sạch da tay / chân', 'Hand / foot skin cleansing'), price: '50.000 – 60.000₫' },
+          { id: 'care_refill', label: L('Refill / up gel móng cũ', 'Refill / old gel touch-up'), price: '100.000 – 250.000₫' },
+          { id: 'care_extensions', label: L('Đắp gel, bột, Powder X', 'Gel, acrylic, Powder X'), price: '380.000₫' },
+          { id: 'care_base', label: L('Up keo / base', 'Glue / base coat application'), price: '100.000 – 200.000₫' },
+          { id: 'care_gelx', label: L('Up gel X', 'Gel X application'), price: '280.000₫' },
+          { id: 'care_dual', label: L('Dual form', 'Dual form'), price: '450.000₫' },
+          heading(L('Màu và hiệu ứng', 'Colour and finish')),
+          { id: 'colour_gel', label: L('Sơn gel / thạch', 'Gel polish / jelly'), price: '150.000₫' },
+          { id: 'colour_cateye', label: L('Sơn mắt mèo / nhũ', 'Cat eye / flash effect'), price: '220.000₫' },
+          { id: 'colour_chrome', label: L('Tráng gương', 'Mirror chrome effect'), price: '250.000₫' },
+          { id: 'colour_ombre', label: L('Ombre / French', 'Ombre / French'), price: '250.000₫' },
+          { id: 'colour_biab', label: L('BIAB', 'BIAB application'), price: '350.000₫' },
+          { id: 'colour_hard_arc', label: L('Cứng móng có cầu móng', 'Hard nail polish with nail arc'), price: '100.000₫' },
+          { id: 'colour_hardener', label: L('Sơn cứng móng', 'Nail hardening base coat'), price: '50.000₫' },
+          { id: 'colour_multi', label: L('Sơn trên 3 màu', 'More than three colours'), price: '30.000₫' },
+          { id: 'colour_regular', label: L('Sơn thường', 'Regular polish'), price: '100.000₫' },
+          heading(L('Vẽ móng, giá mỗi ngón', 'Nail art, price per nail')),
+          { id: 'art_french', label: L('Vẽ viền đầu móng / ombre', 'French tip / ombre'), price: '20.000₫' },
+          { id: 'art_custom', label: L('Design theo mẫu / hoạt hình', 'Custom design / cartoon art'), price: '10.000 – 50.000₫' },
+          { id: 'art_marble', label: L('Vẽ vân đá / kim tuyến', 'Marble effect / glitter'), price: '10.000 – 50.000₫' },
+          { id: 'art_fishscale', label: L('Vảy cá / ẩn xà cừ', 'Fish scale / hidden seashell'), price: '10.000 – 50.000₫' },
+          { id: 'art_charm', label: L('Gắn charm / đá', 'Charm / rhinestone'), price: '10.000 – 50.000₫' },
+          { id: 'art_sticker', label: L('Gắn sticker', 'Sticker'), price: '10.000 – 50.000₫' },
         ] },
         { type: 'single', key: 'nail_shape', label: L('Dáng móng mong muốn (không bắt buộc)', 'Preferred nail shape (optional)'), options: [
           { id: 'round', label: L('Tròn', 'Round') }, { id: 'square', label: L('Vuông', 'Square') },
@@ -280,23 +342,6 @@ const SERVICES = [
           { id: 'almond', label: L('Hạnh nhân', 'Almond') }, { id: 'coffin', label: L('Coffin', 'Coffin / Ballerina') },
         ] },
         { type: 'textarea', key: 'design_notes', label: L('Màu sắc / mẫu mong muốn (không bắt buộc)', 'Colour or design wishes (optional)') },
-      ] },
-      { title: L('Tình trạng sức khoẻ', 'Health Check'), items: [
-        { type: 'checklist', key: 'conditions',
-          warning: L('Vui lòng báo cho kỹ thuật viên trước khi bắt đầu. Để đảm bảo vệ sinh, kỹ thuật viên có thể điều chỉnh hoặc từ chối dịch vụ nếu có dấu hiệu nhiễm trùng.',
-                     'Please let your technician know before starting. For hygiene, they may adjust or decline the service if there are signs of infection.'),
-          options: [
-            { id: 'diabetes', label: L('Tiểu đường', 'Diabetes') },
-            { id: 'circulation', label: L('Tuần hoàn máu kém', 'Poor circulation') },
-            { id: 'bloodThinners', label: L('Đang dùng thuốc chống đông máu', 'Taking blood thinners') },
-            { id: 'fungus', label: L('Nấm móng hoặc nhiễm trùng móng/da', 'Nail fungus or nail/skin infection') },
-            { id: 'wounds', label: L('Vết cắt, vết thương hở hoặc mụn cóc ở tay/chân', 'Cuts, open wounds or warts on hands/feet') },
-            { id: 'eczema', label: L('Chàm, vảy nến hoặc da nhạy cảm', 'Eczema, psoriasis or sensitive skin') },
-            { id: 'allergy', label: L('Dị ứng gel, bột, acetone hoặc latex', 'Allergy to gel, acrylic, acetone or latex') },
-            { id: 'damaged', label: L('Móng yếu, mỏng hoặc đang bị tổn thương', 'Weak, thin or damaged nails') },
-            { id: 'pregnant', label: L('Đang mang thai', 'Pregnant') },
-          ] },
-        { type: 'textarea', key: 'health_details', label: L('Chi tiết thêm (nếu có)', 'Details (if any)') },
       ] },
       { title: L('Lưu ý & Chăm sóc', 'Good to Know & Aftercare'), items: [
         { type: 'info', groups: () => [
@@ -318,12 +363,10 @@ const SERVICES = [
         { ...photoConsent, label: L('Sử dụng hình ảnh móng cho mục đích quảng bá', 'Use of photos of my nails for promotional purposes') },
         consents([
           L('Tôi đã được tư vấn về dịch vụ, sản phẩm sử dụng và cách chăm sóc sau dịch vụ.', 'I have been informed about the service, the products used and aftercare.'),
-          (s) => (s.conditions?.ticked?.length
-            ? L('Tôi đã trao đổi các tình trạng đã đánh dấu ở trên với kỹ thuật viên và đồng ý thực hiện dịch vụ.', 'I have discussed the conditions ticked above with my technician and agree to proceed.')
-            : L('Tôi xác nhận không có tình trạng sức khoẻ nào ở trên.', 'I confirm that none of the health conditions above apply to me.')),
           L('Tôi hiểu có thể xảy ra trầy xước nhẹ hoặc kích ứng với sản phẩm, và tiệm sẽ luôn cố gắng hạn chế tối đa.', 'I understand minor nicks or a reaction to products can occasionally happen, and the salon takes every care to prevent them.'),
-        ], { resetWith: 'conditions' }),
+        ]),
       ] },
+      totalSection,
       signatureSection,
     ],
   },
@@ -337,17 +380,22 @@ const SERVICES = [
         F.name, F.phone, F.email, F.dob(false), F.emergency, F.technician(L('Kỹ Thuật Viên (nếu biết)', 'Therapist (if known)')),
       ] },
       { title: L('Dịch vụ', 'Service'), items: [
-        { type: 'single', key: 'treatment', required: true, label: L('Gói dịch vụ', 'Treatment'), options: [
-          { id: 'classic', label: L('Gội đầu dưỡng sinh', 'Classic Head Spa') },
-          { id: 'neck', label: L('Gội đầu + massage cổ vai gáy', 'Head Spa + Neck & Shoulders') },
-          { id: 'facial', label: L('Gội đầu + chăm sóc da mặt', 'Head Spa + Facial') },
-          { id: 'scalp', label: L('Gội đầu + tẩy tế bào chết da đầu', 'Head Spa + Scalp Scrub') },
-          { id: 'hair', label: L('Gội đầu + hấp dưỡng tóc', 'Head Spa + Hair Treatment') },
-          { id: 'foot', label: L('Gội đầu + ngâm chân', 'Head Spa + Foot Soak') },
+        // Rituals and add-ons from serensaigon.com/pricing.
+        { type: 'single', key: 'treatment', required: true, label: L('Liệu trình', 'Ritual'), options: [
+          { id: 'refresh', label: L('Seren Refresh · 30 phút', 'Seren Refresh · 30 min'), price: '109.000₫' },
+          { id: 'balance', label: L('Seren Balance · 60 phút', 'Seren Balance · 60 min'), price: '289.000₫' },
+          { id: 'bloom', label: L('Seren Bloom · 80 phút', 'Seren Bloom · 80 min'), price: '329.000₫' },
+          { id: 'signature', label: L('Seren Signature Ritual · 100 phút', 'Seren Signature Ritual · 100 min'), price: '539.000₫' },
+          { id: 'glow', label: L('Seren Glow · 130 phút', 'Seren Glow · 130 min'), price: '709.000₫' },
+          { id: 'sanctuary', label: L('Seren Sanctuary · 160 phút', 'Seren Sanctuary · 160 min'), price: '909.000₫' },
         ] },
-        { type: 'single', key: 'duration', required: true, label: L('Thời gian', 'Duration'), options: [
-          { id: '45', label: L('45 phút', '45 minutes') }, { id: '60', label: L('60 phút', '60 minutes') },
-          { id: '90', label: L('90 phút', '90 minutes') }, { id: '120', label: L('120 phút', '120 minutes') },
+        { type: 'multi', key: 'addons', label: L('Dịch vụ thêm (không bắt buộc)', 'Add-ons (optional)'), options: [
+          { id: 'facial_scrub', label: L('Tẩy tế bào chết mặt', 'Facial scrub'), price: '50.000₫' },
+          { id: 'facial_massage', label: L('Massage mặt', 'Facial massage'), price: '50.000₫' },
+          { id: 'facial_mask', label: L('Đắp mặt nạ', 'Facial mask'), price: '50.000₫' },
+          { id: 'eye_mask', label: L('Mặt nạ mắt', 'Eye mask'), price: '30.000₫' },
+          { id: 'hot_stone', label: L('Đá nóng', 'Hot stone'), price: '50.000₫' },
+          { id: 'head_scrub', label: L('Tẩy tế bào chết da đầu', 'Head scrub'), price: '50.000₫' },
         ] },
         { type: 'single', key: 'pressure', required: true, label: L('Lực massage mong muốn', 'Preferred pressure'), options: [
           { id: 'light', label: L('Nhẹ', 'Light') }, { id: 'medium', label: L('Vừa', 'Medium') }, { id: 'firm', label: L('Mạnh', 'Firm') },
@@ -365,36 +413,8 @@ const SERVICES = [
           { id: 'extensions', label: L('Tóc nối', 'Hair extensions') },
         ] },
       ] },
-      { title: L('Tình trạng sức khoẻ', 'Health Information'), items: [
-        { type: 'checklist', key: 'conditions',
-          warning: L('Vui lòng trao đổi với kỹ thuật viên trước khi bắt đầu. Kỹ thuật viên có thể điều chỉnh lực, nhiệt độ nước hoặc tư thế cho phù hợp.',
-                     'Please talk to your therapist before starting. They can adjust the pressure, water temperature or position for you.'),
-          options: [
-            { id: 'pregnant', label: L('Đang mang thai', 'Pregnant') },
-            { id: 'bloodPressure', label: L('Huyết áp cao hoặc thấp', 'High or low blood pressure') },
-            { id: 'heart', label: L('Bệnh tim mạch', 'Heart condition') },
-            { id: 'migraine', label: L('Đau nửa đầu hoặc đau đầu thường xuyên', 'Migraines or frequent headaches') },
-            { id: 'dizziness', label: L('Hay chóng mặt', 'Frequent dizziness') },
-            { id: 'neckSpine', label: L('Thoát vị đĩa đệm hoặc bệnh cột sống cổ', 'Herniated disc or neck/spine problems') },
-            { id: 'injury', label: L('Chấn thương hoặc phẫu thuật vùng đầu, cổ trong 6 tháng gần đây', 'Head or neck injury or surgery in the last 6 months') },
-            { id: 'scalpSkin', label: L('Vết thương, nhiễm trùng, vảy nến hoặc chàm da đầu', 'Scalp wounds, infection, psoriasis or eczema') },
-            { id: 'contagious', label: L('Sốt, cảm cúm hoặc bệnh truyền nhiễm', 'Fever, flu or contagious illness') },
-            { id: 'epilepsy', label: L('Động kinh', 'Epilepsy / seizures') },
-            { id: 'allergy', label: L('Dị ứng dầu gội, tinh dầu hoặc hương liệu', 'Allergy to shampoos, essential oils or fragrances') },
-          ] },
-        { type: 'textarea', key: 'health_details', label: L('Chi tiết thêm (nếu có)', 'Details (if any)') },
-        { type: 'textarea', key: 'medications', label: L('Thuốc đang sử dụng', 'Current medications') },
-      ] },
-      { title: L('Chăm sóc sau dịch vụ', 'Aftercare'), items: [
-        { type: 'info', groups: () => [{ items: [
-          L('Ngồi dậy và đứng lên từ từ để tránh chóng mặt.', 'Sit up and stand up slowly to avoid feeling dizzy.'),
-          L('Uống nhiều nước ấm sau khi gội đầu dưỡng sinh.', 'Drink plenty of warm water after your head spa.'),
-          L('Tránh gội đầu lại trong ngày để dưỡng chất thẩm thấu.', 'Avoid washing your hair again today so the treatment can work.'),
-          L('Sấy tóc ở nhiệt độ vừa phải, tránh ra gió lạnh khi tóc còn ướt.', 'Dry your hair on a medium setting and avoid cold wind while it is still wet.'),
-          L('Liên hệ với chúng tôi nếu da đầu bị kích ứng hoặc bạn cảm thấy không khoẻ.', 'Contact us if your scalp becomes irritated or you feel unwell.'),
-        ] }] },
-      ] },
       { title: L('Cam kết', 'Consent'), items: wellnessAgreements(L('gội đầu dưỡng sinh', 'head spa')) },
+      totalSection,
       signatureSection,
     ],
   },
@@ -410,7 +430,9 @@ const OPTION_SETS = {
     { id: 'legs', label: L('Chân', 'Legs') }, { id: 'feet', label: L('Bàn chân', 'Feet') },
   ],
 };
-const optionsOf = (item) => (typeof item.options === 'string' ? OPTION_SETS[item.options] : item.options);
+const allOptionsOf = (item) => (typeof item.options === 'string' ? OPTION_SETS[item.options] : item.options);
+/** Choosable options only (without sub-headings). */
+const optionsOf = (item) => allOptionsOf(item).filter((o) => !o.heading);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -421,12 +443,19 @@ const store = {
   set(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode */ } },
 };
 
-let lang = store.get('seren-lang') || 'both';
+const LANGS = ['both', 'vi', 'en', ...EXTRA_LANGS];
+/** First visit: use the phone's language if the page offers it, otherwise Vietnamese + English. */
+function defaultLang() {
+  const code = (navigator.language || '').toLowerCase().slice(0, 2);
+  return EXTRA_LANGS.includes(code) ? code : 'both';
+}
+let lang = LANGS.includes(store.get('seren-lang')) ? store.get('seren-lang') : defaultLang();
 let service = null;
 let state = {};
 
 const both = (l) => (l.vi === l.en ? l.vi : `${l.vi} / ${l.en}`);
-const txt = (l) => (lang === 'vi' ? l.vi : lang === 'en' ? l.en : both(l));
+// Records always use both(); the screen shows the chosen language (English when a translation is missing).
+const txt = (l) => (lang === 'both' ? both(l) : l[lang] || l.en);
 const resolve = (value) => (typeof value === 'function' ? value(state) : value);
 
 function h(tag, attrs = {}, ...children) {
@@ -458,6 +487,35 @@ function optionLabel(o) {
 
 const withPrice = (o) => (o.price ? `${both(o.label)} (${o.price})` : both(o.label));
 
+// ---- Total -------------------------------------------------------------------
+const TOTAL = {
+  total: L('Tổng cộng', 'Total'),
+  nothing: L('Chưa chọn dịch vụ nào.', 'No services chosen yet.'),
+  vnd: L('Giá niêm yết bằng VNĐ.', 'Prices are in VND.'),
+  range: L('Một số dịch vụ có giá theo khoảng hoặc tính theo ngón. Kỹ thuật viên sẽ xác nhận giá cuối cùng trước khi bắt đầu.',
+           'Some prices are a range or per nail. Your technician will confirm the final price before starting.'),
+};
+/** '450.000₫' → { lo: 450000, hi: 450000 }; '10.000 – 50.000₫' → { lo: 10000, hi: 50000 }. */
+function parsePrice(price) {
+  const nums = (String(price).match(/\d[\d.]*/g) || []).map((n) => Number(n.replace(/\./g, '')));
+  return { lo: nums[0] || 0, hi: nums[1] || nums[0] || 0 };
+}
+const vnd = (n) => `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}₫`;
+const priceRange = (lo, hi) => (lo === hi ? vnd(lo) : `${vnd(lo).slice(0, -1)} – ${vnd(hi)}`);
+
+/** Every priced option chosen on the current form, in form order, with the total. */
+function priced() {
+  const lines = [];
+  for (const item of allItems()) {
+    if (item.type !== 'single' && item.type !== 'multi') continue;
+    const chosen = item.type === 'single' ? [state[item.key]] : state[item.key] || [];
+    for (const o of optionsOf(item)) if (o.price && chosen.includes(o.id)) lines.push({ option: o, ...parsePrice(o.price) });
+  }
+  const lo = lines.reduce((sum, l) => sum + l.lo, 0);
+  const hi = lines.reduce((sum, l) => sum + l.hi, 0);
+  return { lines, lo, hi, text: priceRange(lo, hi), isRange: lo !== hi };
+}
+
 function ageFrom(isoDate) {
   const birth = new Date(isoDate);
   if (Number.isNaN(birth.getTime())) return null;
@@ -481,7 +539,8 @@ let wrappers = [];   // { item, node } for re-rendering
 let signaturePad = null;
 
 function setStatic() {
-  document.documentElement.lang = lang === 'en' ? 'en' : 'vi';
+  const extra = I18N.languages.find((l) => l.code === lang);
+  document.documentElement.lang = extra ? extra.htmlLang : lang === 'en' ? 'en' : 'vi';
   backButton.replaceChildren('‹ ', txt(T.back));
   langSelect.value = lang;
 }
@@ -527,8 +586,13 @@ function renderForm() {
     h('div', { class: 'stack' }, sections),
     h('div', { style: 'margin-top:24px' },
       h('button', { class: 'primary', id: 'submit', type: 'button', onclick: submit },
-        T.submit.vi, lang !== 'vi' ? h('span', { class: 'en' }, T.submit.en) : null)),
+        submitLabel())),
   );
+}
+
+function submitLabel() {
+  if (EXTRA_LANGS.includes(lang)) return [txt(T.submit)];
+  return [T.submit.vi, lang !== 'vi' ? h('span', { class: 'en' }, T.submit.en) : null];
 }
 
 function rerender(predicate) {
@@ -538,8 +602,10 @@ function rerender(predicate) {
 }
 const rerenderDynamic = () => rerender((item) => item.dynamic);
 
+const isRequired = (item) => (typeof item.required === 'function' ? item.required(state) : Boolean(item.required));
+
 function label(item) {
-  return h('span', { class: 'label' }, txt(resolve(item.label)), item.required ? h('span', { class: 'req' }, ' *') : null);
+  return h('span', { class: 'label' }, txt(resolve(item.label)), isRequired(item) ? h('span', { class: 'req' }, ' *') : null);
 }
 
 function renderItem(item) {
@@ -577,8 +643,9 @@ function renderItem(item) {
     case 'multi': {
       const selected = state[item.key] || [];
       return h('div', { class: 'field' }, label(item),
-        h('div', { class: 'choices' }, optionsOf(item).map((o) =>
-          h('button', {
+        h('div', { class: 'choices' }, allOptionsOf(item).map((o) => (o.heading
+          ? lt(o.heading, 'h3', 'choice-heading')
+          : h('button', {
             type: 'button', class: 'chip', 'aria-pressed': String(selected.includes(o.id)),
             onclick: () => {
               const now = new Set(state[item.key] || []);
@@ -589,7 +656,7 @@ function renderItem(item) {
               }
               rerender((i) => i === item || i.key === item.exclusiveWith || i.dynamic);
             },
-          }, h('span', { class: 'box' }), optionLabel(o)))));
+          }, h('span', { class: 'box' }), optionLabel(o))))));
     }
     case 'checklist': {
       const value = state[item.key] || { ticked: [], none: false };
@@ -630,6 +697,15 @@ function renderItem(item) {
           type: 'button', class: 'chip agree-all', 'aria-pressed': String(Boolean(state[item.key])),
           onclick: () => { state[item.key] = !state[item.key]; rerender((i) => i === item); },
         }, h('span', { class: 'box' }), h('strong', {}, lt(T.agreeAll))));
+    case 'total': {
+      const bill = priced();
+      if (!bill.lines.length) return h('p', { class: 'muted' }, txt(TOTAL.nothing));
+      return h('div', { class: 'bill' },
+        bill.lines.map((l) => h('div', { class: 'bill-line' }, lt(l.option.label), h('span', { class: 'price' }, l.option.price))),
+        h('div', { class: 'bill-total' }, h('span', {}, txt(TOTAL.total)), h('span', { class: 'price' }, bill.text)),
+        h('p', { class: 'muted' }, txt(TOTAL.vnd)),
+        bill.isRange ? h('div', { class: 'notice info' }, h('span', { class: 'i' }, 'ℹ️'), lt(TOTAL.range)) : null);
+    }
     case 'signature':
       return renderSignature(item);
     default:
@@ -760,16 +836,16 @@ function validate() {
     const value = state[item.key];
     switch (item.type) {
       case 'text':
-        if (item.required && !(value || '').trim()) { missing.push(item.label); bad.push(item.key); }
+        if (isRequired(item) && !(value || '').trim()) { missing.push(item.label); bad.push(item.key); }
         break;
       case 'date':
-        if (item.required && !value) { missing.push(item.label); bad.push(item.key); }
+        if (isRequired(item) && !value) { missing.push(item.label); bad.push(item.key); }
         break;
       case 'single':
-        if (item.required && !value) missing.push(item.label);
+        if (isRequired(item) && !value) missing.push(item.label);
         break;
       case 'multi':
-        if (item.required && !(value || []).length) missing.push(item.label);
+        if (isRequired(item) && !(value || []).length) missing.push(item.label);
         break;
       case 'checklist':
         if (!value || (!value.ticked.length && !value.none)) missing.push(T.healthMissing);
@@ -826,6 +902,11 @@ function buildSummary() {
       if (item.type === 'consents') {
         item.statements.forEach((l) => lines.push(`• ${both(resolve(l))}`));
         lines.push(`${state[item.key] ? '☑' : '☐'} ${both(T.agreeAll)}`);
+      }
+      else if (item.type === 'total') {
+        const bill = priced();
+        bill.lines.forEach((l) => lines.push(`• ${both(l.option.label)}: ${l.option.price}`));
+        lines.push(`${both(TOTAL.total)}: ${bill.lines.length ? bill.text : '—'}`);
       }
       else if (item.type === 'signature') lines.push(`${both(item.label)}: ${signaturePad?.drawn ? '✓ (signature.png)' : '—'}`);
       else if (item.key) lines.push(`${both(resolve(item.label) || T.tickPrompt)}: ${formatValue(item)}`);
@@ -888,7 +969,7 @@ async function submit() {
   } catch (error) {
     console.error(error);
     button.disabled = false;
-    button.replaceChildren(T.submit.vi, lang !== 'vi' ? h('span', { class: 'en' }, T.submit.en) : null);
+    button.replaceChildren(...submitLabel());
     const box = document.getElementById('errors');
     const message = error.message === 'not-configured' ? T.notConfigured : T.sendError;
     box.replaceChildren(h('div', { class: 'card errors', role: 'alert', style: 'margin-bottom:16px' }, txt(message)));
@@ -912,6 +993,8 @@ function showThanks() {
 // Start
 // ---------------------------------------------------------------------------
 
+for (const l of I18N.languages) langSelect.append(h('option', { value: l.code }, l.name));
+langSelect.value = lang;
 langSelect.addEventListener('change', () => {
   lang = langSelect.value;
   store.set('seren-lang', lang);

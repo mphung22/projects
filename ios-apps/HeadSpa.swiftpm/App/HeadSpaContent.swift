@@ -33,8 +33,37 @@ enum HeadSpaContent {
     // MARK: 2. Service
 
     static let serviceTitle = L("Dịch vụ", "Service")
-    static let serviceType = L("Gói dịch vụ", "Treatment")
-    static let services: [Option] = [
+    static let serviceType = L("Chọn liệu trình (và dịch vụ thêm nếu muốn)", "Choose your ritual (and any add-ons)")
+    static let ritualRequired = L("Chọn một liệu trình gội đầu", "Choose a head spa ritual")
+
+    /// SEREN price list (serensaigon.com/pricing). Edit prices here.
+    static let priceGroups: [PriceGroup] = [
+        PriceGroup(title: L("Liệu trình gội đầu dưỡng sinh", "Head spa rituals"), singleChoice: true, items: [
+            PriceItem(id: "ritual_refresh", label: L("Seren Refresh", "Seren Refresh"), price: 109_000, detail: minutes(30)),
+            PriceItem(id: "ritual_balance", label: L("Seren Balance", "Seren Balance"), price: 289_000, detail: minutes(60)),
+            PriceItem(id: "ritual_bloom", label: L("Seren Bloom", "Seren Bloom"), price: 329_000, detail: minutes(80)),
+            PriceItem(id: "ritual_signature", label: L("Seren Signature Ritual", "Seren Signature Ritual"), price: 539_000, detail: minutes(100)),
+            PriceItem(id: "ritual_glow", label: L("Seren Glow", "Seren Glow"), price: 709_000, detail: minutes(130)),
+            PriceItem(id: "ritual_sanctuary", label: L("Seren Sanctuary", "Seren Sanctuary"), price: 909_000, detail: minutes(160)),
+        ]),
+        PriceGroup(title: L("Dịch vụ thêm", "Ritual add-ons"), items: [
+            PriceItem(id: "addon_facial_scrub", label: L("Tẩy tế bào chết mặt", "Facial scrub"), price: 50_000),
+            PriceItem(id: "addon_facial_massage", label: L("Massage mặt", "Facial massage"), price: 50_000),
+            PriceItem(id: "addon_facial_mask", label: L("Đắp mặt nạ", "Facial mask"), price: 50_000),
+            PriceItem(id: "addon_eye_mask", label: L("Mặt nạ mắt", "Eye mask"), price: 30_000),
+            PriceItem(id: "addon_hot_stone", label: L("Đá nóng", "Hot stone"), price: 50_000),
+            PriceItem(id: "addon_head_scrub", label: L("Tẩy tế bào chết da đầu", "Head scrub"), price: 50_000),
+        ]),
+    ]
+
+    static var ritualIDs: Set<String> { Set(priceGroups[0].items.map(\.id)) }
+
+    private static func minutes(_ n: Int) -> L {
+        L("\(n) phút", "\(n) min", ["zh": "\(n) 分钟", "ko": "\(n)분", "fr": "\(n) min", "ja": "\(n)分", "ru": "\(n) мин"])
+    }
+
+    /// Choices from forms saved before the price list was added (shown on old records only).
+    static let legacyServices: [Option] = [
         Option(id: "classic", label: L("Gội đầu dưỡng sinh", "Classic Head Spa")),
         Option(id: "neck", label: L("Gội đầu + massage cổ vai gáy", "Head Spa + Neck & Shoulders")),
         Option(id: "facial", label: L("Gội đầu + chăm sóc da mặt", "Head Spa + Facial")),
@@ -42,8 +71,7 @@ enum HeadSpaContent {
         Option(id: "hair", label: L("Gội đầu + hấp dưỡng tóc", "Head Spa + Hair Treatment")),
         Option(id: "foot", label: L("Gội đầu + ngâm chân", "Head Spa + Foot Soak")),
     ]
-    static let durationLabel = L("Thời gian", "Duration")
-    static let durations: [Option] = [
+    static let legacyDurations: [Option] = [
         Option(id: "45", label: L("45 phút", "45 minutes")),
         Option(id: "60", label: L("60 phút", "60 minutes")),
         Option(id: "90", label: L("90 phút", "90 minutes")),
@@ -71,62 +99,17 @@ enum HeadSpaContent {
         Option(id: "extensions", label: L("Tóc nối", "Hair extensions")),
     ]
 
-    // MARK: 4. Health
+    // MARK: 4. Your selection & total (wording in Shared/PriceMenu.swift)
 
-    static let healthTitle = L("Tình trạng sức khoẻ", "Health Information")
-    static let healthPrompt = L(
-        "Vui lòng đánh dấu nếu bạn có bất kỳ tình trạng nào dưới đây:",
-        "Please tick any of the following that apply to you:"
-    )
-    static let conditions: [Option] = [
-        Option(id: "pregnant", label: L("Đang mang thai", "Pregnant")),
-        Option(id: "bloodPressure", label: L("Huyết áp cao hoặc thấp", "High or low blood pressure")),
-        Option(id: "heart", label: L("Bệnh tim mạch", "Heart condition")),
-        Option(id: "migraine", label: L("Đau nửa đầu hoặc đau đầu thường xuyên", "Migraines or frequent headaches")),
-        Option(id: "dizziness", label: L("Hay chóng mặt", "Frequent dizziness")),
-        Option(id: "neckSpine", label: L("Thoát vị đĩa đệm hoặc bệnh cột sống cổ", "Herniated disc or neck/spine problems")),
-        Option(id: "injury", label: L("Chấn thương hoặc phẫu thuật vùng đầu, cổ trong 6 tháng gần đây",
-                                      "Head or neck injury or surgery in the last 6 months")),
-        Option(id: "scalpSkin", label: L("Vết thương, nhiễm trùng, vảy nến hoặc chàm da đầu",
-                                         "Scalp wounds, infection, psoriasis or eczema")),
-        Option(id: "contagious", label: L("Sốt, cảm cúm hoặc bệnh truyền nhiễm", "Fever, flu or contagious illness")),
-        Option(id: "epilepsy", label: L("Động kinh", "Epilepsy / seizures")),
-        Option(id: "allergy", label: L("Dị ứng dầu gội, tinh dầu hoặc hương liệu",
-                                       "Allergy to shampoos, essential oils or fragrances")),
-    ]
-    static let noneApply = L("Tôi không có tình trạng nào ở trên.", "None of the above apply to me.")
-    static let healthDetails = L("Chi tiết thêm (nếu có)", "Details (if any)")
-    static let medications = L("Thuốc đang sử dụng", "Current medications")
-    static let healthWarning = L(
-        "Vui lòng trao đổi với kỹ thuật viên trước khi bắt đầu. Kỹ thuật viên có thể điều chỉnh lực, nhiệt độ nước hoặc tư thế cho phù hợp.",
-        "Please talk to your therapist before starting. They can adjust the pressure, water temperature or position for you."
-    )
-
-    // MARK: 5. Aftercare
-
-    static let aftercareTitle = L("Chăm sóc sau dịch vụ", "Aftercare")
-    static let aftercare: [L] = [
-        L("Ngồi dậy và đứng lên từ từ để tránh chóng mặt.",
-          "Sit up and stand up slowly to avoid feeling dizzy."),
-        L("Uống nhiều nước ấm sau khi gội đầu dưỡng sinh.",
-          "Drink plenty of warm water after your head spa."),
-        L("Tránh gội đầu lại trong ngày để dưỡng chất thẩm thấu.",
-          "Avoid washing your hair again today so the treatment can work."),
-        L("Sấy tóc ở nhiệt độ vừa phải, tránh ra gió lạnh khi tóc còn ướt.",
-          "Dry your hair on a medium setting and avoid cold wind while it is still wet."),
-        L("Liên hệ với chúng tôi nếu da đầu bị kích ứng hoặc bạn cảm thấy không khoẻ.",
-          "Contact us if your scalp becomes irritated or you feel unwell."),
-    ]
-
-    // MARK: 6. Consent
+    // MARK: 5. Consent
 
     static let consentTitle = L("Cam kết & Xác nhận", "Consent & Signature")
 
     static func agreements(businessName: String) -> [Option] {
         [
             Option(id: "accurate", label: L(
-                "Tôi xác nhận thông tin sức khoẻ trên là chính xác và sẽ báo ngay cho kỹ thuật viên nếu có thay đổi.",
-                "I confirm the health information above is accurate and I will tell my therapist about any changes.")),
+                "Tôi xác nhận thông tin trên là chính xác và sẽ báo cho kỹ thuật viên trước khi bắt đầu nếu có vấn đề sức khoẻ cần lưu ý.",
+                "I confirm the information above is accurate and I will tell my therapist before we start about any health concerns.")),
             Option(id: "notMedical", label: L(
                 "Tôi hiểu gội đầu dưỡng sinh nhằm mục đích thư giãn và chăm sóc, không thay thế cho chẩn đoán hay điều trị y khoa.",
                 "I understand head spa is for relaxation and care and is not a substitute for medical diagnosis or treatment.")),

@@ -20,8 +20,10 @@ extension MassageAnswers {
         pdf.field(MassageContent.therapist, therapist)
 
         pdf.heading(2, MassageContent.serviceTitle)
-        pdf.field(MassageContent.serviceType, serviceLabel?.both ?? "")
-        pdf.field(MassageContent.durationLabel, durationLabel?.both ?? "")
+        pdf.field(MassageContent.serviceType, priceLines.isEmpty
+            ? legacyServiceLabels.map(\.both).joined(separator: ", ")
+            : priceLines.map(\.label.both).joined(separator: ", "))
+        pdf.field(MassageContent.oilLabel, oilLabel?.both ?? "")
         pdf.field(MassageContent.pressureLabel, pressureLabel?.both ?? "")
 
         pdf.heading(3, MassageContent.areasTitle)
@@ -30,19 +32,11 @@ extension MassageAnswers {
         pdf.field(MassageContent.avoidLabel,
                   MassageContent.areas.labels(for: avoidAreas).map(\.both).joined(separator: ", "))
 
-        pdf.heading(4, MassageContent.healthTitle)
-        if !conditionLabels.isEmpty {
-            pdf.alert(conditionLabels.map(\.both).joined(separator: " • "))
-        }
-        for option in MassageContent.conditions {
-            pdf.check(conditions.contains(option.id), option.label)
-        }
-        pdf.check(noConditions, MassageContent.noneApply)
-        pdf.field(MassageContent.healthDetails, healthDetails)
-        pdf.field(MassageContent.medications, medications)
-
-        pdf.heading(5, MassageContent.aftercareTitle)
+        pdf.heading(4, MassageContent.aftercareTitle)
         MassageContent.aftercare.forEach(pdf.bullet)
+
+        pdf.heading(5, PriceText.summaryTitle)
+        pdf.priceSummary(groups: MassageContent.priceGroups, selection: prices)
 
         pdf.heading(6, MassageContent.consentTitle)
         for option in MassageContent.agreements(businessName: businessName) {

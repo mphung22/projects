@@ -4,7 +4,6 @@ struct MassageFormView: View {
     let onSubmit: (MassageAnswers) -> Void
 
     @AppStorage(SettingsKey.businessName) private var businessName = ""
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var answers = MassageAnswers()
     @State private var missing: [L] = []
 
@@ -26,22 +25,18 @@ struct MassageFormView: View {
                 }
             }
 
-            FormSection(number: 4, title: MassageContent.healthTitle) { health }
-
-            FormSection(number: 5, title: MassageContent.aftercareTitle) {
+            FormSection(number: 4, title: MassageContent.aftercareTitle) {
                 BulletList(items: MassageContent.aftercare)
+            }
+
+            FormSection(number: 5, title: PriceText.summaryTitle) {
+                PriceSummaryView(groups: MassageContent.priceGroups, selection: answers.prices)
             }
 
             FormSection(number: 6, title: MassageContent.consentTitle) { consent }
 
             SubmitButton(title: MassageContent.submit, action: submit)
                 .padding(.bottom, 40)
-        }
-        .onChange(of: answers.noConditions) { _, none in
-            if none { answers.conditions.removeAll() }
-        }
-        .onChange(of: answers.conditions) { _, ticked in
-            if !ticked.isEmpty { answers.noConditions = false }
         }
         // An area can't be both "focus" and "avoid".
         .onChange(of: answers.focusAreas) { _, focus in
@@ -88,38 +83,18 @@ struct MassageFormView: View {
     private var serviceChoices: some View {
         VStack(alignment: .leading, spacing: 12) {
             FieldLabel(title: MassageContent.serviceType, required: true)
-            ChoiceChips(options: MassageContent.services, selection: $answers.serviceID, columns: 3)
+            PriceMenuView(groups: MassageContent.priceGroups, selection: $answers.prices)
 
-            FieldLabel(title: MassageContent.durationLabel, required: true)
+            FieldLabel(title: MassageContent.oilLabel, required: answers.needsOil)
                 .padding(.top, 12)
-            ChoiceChips(options: MassageContent.durations, selection: $answers.durationID, columns: 4)
+            ChoiceChips(options: MassageContent.oils, selection: $answers.oil, columns: 2)
+            if answers.oil == "calming" {
+                NoticeBanner(text: MassageContent.almondWarning, systemImage: "info.circle.fill", tint: .blue)
+            }
 
             FieldLabel(title: MassageContent.pressureLabel, required: true)
                 .padding(.top, 12)
             ChoiceChips(options: MassageContent.pressures, selection: $answers.pressureID, columns: 4)
-        }
-    }
-
-    private var health: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LText(MassageContent.healthPrompt, font: .headline)
-                .padding(.bottom, 4)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: sizeClass == .compact ? 1 : 2), alignment: .leading, spacing: 4) {
-                ForEach(MassageContent.conditions) { option in
-                    CheckRow(text: option.label, isOn: $answers.conditions.contains(option.id))
-                }
-            }
-            Divider().padding(.vertical, 4)
-            CheckRow(text: MassageContent.noneApply, isOn: $answers.noConditions)
-
-            if !answers.conditions.isEmpty {
-                NoticeBanner(text: MassageContent.healthWarning)
-                    .padding(.vertical, 8)
-            }
-
-            TextFieldRow(title: MassageContent.healthDetails, text: $answers.healthDetails, multiline: true)
-                .padding(.top, 8)
-            TextFieldRow(title: MassageContent.medications, text: $answers.medications, multiline: true)
         }
     }
 

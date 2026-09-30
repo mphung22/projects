@@ -168,7 +168,7 @@ struct KioskRoot: View {
         .preferredColorScheme(.light)
         .fullScreenCover(isPresented: $showStaff) {
             StaffArea(services: services, feedbackStore: feedbackStore)
-                .environment(\.languageMode, language)
+                .environment(\.languageMode, language.isExtra ? .both : language)
                 .preferredColorScheme(.light)
         }
         .alert(
@@ -211,6 +211,7 @@ private struct WelcomeScreen: View {
     let onStaff: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.languageMode) private var mode
 
     var body: some View {
         ScrollView {
@@ -222,23 +223,21 @@ private struct WelcomeScreen: View {
                 Text(businessName)
                     .font(.system(size: 56, weight: .light, design: .serif))
                     .multilineTextAlignment(.center)
-                VStack(spacing: 4) {
-                    Text(config.formTitle.vi).font(.title2)
-                    Text(config.formTitle.en).font(.title3).italic().foregroundStyle(.secondary)
-                }
-                .multilineTextAlignment(.center)
+                LHeading(l: config.formTitle, font: .title2, secondaryFont: .title3)
 
-                Picker("Ngôn ngữ / Language", selection: $languageRaw) {
-                    ForEach(LanguageMode.allCases) { Text($0.label).tag($0.rawValue) }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 520)
+                LanguageButtons(raw: $languageRaw)
+                    .frame(maxWidth: 640)
 
                 if services.count == 1, let only = services.first {
                     Button { onStart(only) } label: {
                         VStack(spacing: 2) {
-                            Text("Bắt đầu").font(.title.weight(.semibold))
-                            Text("Tap to start").font(.headline)
+                            if mode == .both || mode == .vietnamese {
+                                Text("Bắt đầu").font(.title.weight(.semibold))
+                            }
+                            if mode != .vietnamese {
+                                Text(L("Bắt đầu", "Tap to start").text(mode == .both ? .english : mode))
+                                    .font(mode == .both ? .headline : .title.weight(.semibold))
+                            }
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 80)
@@ -259,7 +258,7 @@ private struct WelcomeScreen: View {
                 }
 
                 Button(action: onFeedback) {
-                    Label("Đánh giá dịch vụ / Leave feedback", systemImage: "star.bubble")
+                    Label(L("Đánh giá dịch vụ", "Leave feedback").text(mode), systemImage: "star.bubble")
                         .font(.title3.weight(.medium))
                         .padding(.horizontal, 28)
                         .padding(.vertical, 14)
@@ -288,6 +287,7 @@ private struct WelcomeScreen: View {
 private struct ServiceCard: View {
     let service: KioskService
     let action: () -> Void
+    @Environment(\.languageMode) private var mode
 
     var body: some View {
         let name = service.config.shortName ?? service.config.formTitle
@@ -299,9 +299,13 @@ private struct ServiceCard: View {
                     .frame(width: 68, height: 68)
                     .background(Circle().fill(Color.accentColor))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(name.vi).font(.title2.weight(.semibold))
-                    if name.en != name.vi {
-                        Text(name.en).font(.headline).italic().foregroundStyle(.secondary)
+                    if mode == .both {
+                        Text(name.vi).font(.title2.weight(.semibold))
+                        if name.en != name.vi {
+                            Text(name.en).font(.headline).italic().foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text(name.text(mode)).font(.title2.weight(.semibold))
                     }
                 }
                 Spacer(minLength: 0)
@@ -320,21 +324,18 @@ private struct ServiceCard: View {
 
 private struct ThankYouScreen: View {
     let onDone: () -> Void
+    @Environment(\.languageMode) private var mode
 
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 96))
                 .foregroundStyle(Color.accentColor)
-            Text("Cảm ơn quý khách!").font(.system(size: 44, weight: .semibold, design: .serif))
-            Text("Thank you!").font(.title).italic().foregroundStyle(.secondary)
-            VStack(spacing: 4) {
-                Text("Vui lòng đưa iPad lại cho nhân viên.")
-                Text("Please hand the iPad back to our staff.").italic().foregroundStyle(.secondary)
-            }
-            .font(.title3)
-            .multilineTextAlignment(.center)
-            Button("Xong / Done", action: onDone)
+            LHeading(l: L("Cảm ơn quý khách!", "Thank you!"),
+                     font: .system(size: 44, weight: .semibold, design: .serif), secondaryFont: .title)
+            LHeading(l: L("Vui lòng đưa iPad lại cho nhân viên.", "Please hand the iPad back to our staff."),
+                     font: .title3, secondaryFont: .title3)
+            Button(L("Xong", "Done").text(mode), action: onDone)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .padding(.top, 12)

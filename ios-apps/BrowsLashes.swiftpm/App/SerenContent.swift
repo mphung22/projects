@@ -28,9 +28,56 @@ enum SerenContent {
     static let idNumber = L("CCCD/CMND", "ID/Passport")
     static let serviceDate = L("Ngày Thực Hiện", "Service Date")
     static let registeredService = L("Dịch Vụ (chọn một hoặc nhiều)", "Registered Services (choose one or more)")
+    static let servicesTitle = L("Dịch vụ", "Services")
     static let technician = L("Kỹ Thuật Viên", "Technician")
 
-    static let services: [Option] = [
+    /// SEREN price list (serensaigon.com/pricing). Edit prices here.
+    static let priceGroups: [PriceGroup] = [
+        PriceGroup(title: L("Nối mi — các dáng mi", "Lash extensions — sets"), singleChoice: true, items: [
+            PriceItem(id: "set_classic", label: L("Classic", "Classic"), price: 350_000, detail: L("8–15 mm", "8–15 mm")),
+            PriceItem(id: "set_babe", label: L("Babe", "Babe"), price: 350_000, detail: L("8–15 mm", "8–15 mm")),
+            PriceItem(id: "set_wispy", label: L("Wispy", "Wispy"), price: 450_000, detail: L("9–15 mm", "9–15 mm")),
+            PriceItem(id: "set_kimk", label: L("Kim K", "Kim K"), price: 450_000, detail: L("9–15 mm", "9–15 mm")),
+            PriceItem(id: "set_cateye", label: L("Cat Eye", "Cat Eye"), price: 450_000, detail: L("9–15 mm", "9–15 mm")),
+            PriceItem(id: "set_volume", label: L("Volume", "Volume"), price: 450_000, detail: L("9–15 mm", "9–15 mm")),
+            PriceItem(id: "set_animefox", label: L("Anime Fox", "Anime Fox"), price: 450_000, detail: L("9–15 mm", "9–15 mm")),
+            PriceItem(id: "set_douyin", label: L("Douyin", "Douyin"), price: 450_000, detail: L("8–15 mm", "8–15 mm")),
+        ]),
+        PriceGroup(
+            title: L("Nâng cấp chất liệu mi", "Lash fibre upgrades"),
+            note: L("Áp dụng cho mọi dáng mi.", "Applies to any set."),
+            items: [
+                PriceItem(id: "upgrade_natural", label: L("Mi lông thật", "Natural-fibre lashes"), price: 100_000, isUpgrade: true),
+                PriceItem(id: "upgrade_matte", label: L("Mi mun", "Matte black lashes"), price: 100_000, isUpgrade: true),
+            ]
+        ),
+        PriceGroup(title: L("Nối mi — dịch vụ khác", "Lashes — other services"), items: [
+            PriceItem(id: "lash_lift", label: L("Uốn mi", "Lash lift"), price: 300_000),
+            PriceItem(id: "lash_design_lift", label: L("Uốn mi design", "Design lash lift"), price: 350_000),
+            PriceItem(id: "lash_lift_backtint", label: L("Uốn & nhuộm phủ đen", "Lash lift & backtint"), price: 350_000),
+            PriceItem(id: "lash_tinting", label: L("Phủ đen mi", "Lash tinting"), price: 150_000),
+            PriceItem(id: "lash_straightening", label: L("Duỗi mi", "Lash straightening"), price: 100_000),
+            PriceItem(id: "lash_lower", label: L("Nối mi dưới", "Lower lash extension"), price: 100_000),
+            PriceItem(id: "lash_removal", label: L("Tháo mi, vệ sinh", "Lash removal & cleansing"), price: 60_000),
+            PriceItem(id: "lash_colour_mix", label: L("Mi mix màu", "Colour mix lashes"), price: 50_000, maxPrice: 100_000),
+            PriceItem(id: "lash_custom", label: L("Mẫu design riêng", "Custom lash design"), price: 500_000),
+        ]),
+        PriceGroup(title: L("Chân mày", "Brows"), items: [
+            PriceItem(id: "brow_cleanup", label: L("Làm sạch chân mày", "Brow clean up"), price: 50_000),
+            PriceItem(id: "brow_wax", label: L("Wax chân mày", "Eyebrow wax"), price: 100_000),
+            PriceItem(id: "brow_black_tint", label: L("Phủ đen chân mày", "Brow black tint"), price: 150_000),
+            PriceItem(id: "brow_colour_tint", label: L("Phủ màu chân mày", "Brow colour tint"), price: 200_000),
+            PriceItem(id: "brow_lamination", label: L("Định hình chân mày", "Brow lamination"), price: 450_000),
+        ]),
+        PriceGroup(title: L("Combo mi & mày", "Lash & brow combo"), items: [
+            PriceItem(id: "combo_lift_lam", label: L("Uốn mi + uốn chân mày", "Lash lift + brow lamination"), price: 700_000),
+            PriceItem(id: "combo_lift_tint_lam", label: L("Uốn mi & nhuộm phủ đen + uốn chân mày",
+                                                          "Lash lift & backtint + brow lamination"), price: 750_000),
+        ]),
+    ]
+
+    /// Service ticks from forms saved before the price list was added (shown on old records only).
+    static let legacyServices: [Option] = [
         Option(id: "lamination_tint", label: L("Uốn & Nhuộm chân mày", "Brows Lamination + Tint")),
         Option(id: "lamination", label: L("Uốn chân mày", "Brows Lamination")),
         Option(id: "tint", label: L("Nhuộm chân mày", "Brows Tint")),
@@ -42,13 +89,30 @@ enum SerenContent {
 
     private enum Category { case brows, lashLift, lashExtensions }
 
+    // Which information and aftercare to show. Includes ids from old records and from the price list.
+    private static let browIDs: Set<String> = [
+        "lamination_tint", "lamination", "tint",
+        "brow_cleanup", "brow_wax", "brow_black_tint", "brow_colour_tint", "brow_lamination",
+        "combo_lift_lam", "combo_lift_tint_lam",
+    ]
+    private static let lashLiftIDs: Set<String> = [
+        "lash_lift_tint", "lash_lift", "lash_tint",
+        "lash_design_lift", "lash_lift_backtint", "lash_tinting", "lash_straightening",
+        "combo_lift_lam", "combo_lift_tint_lam",
+    ]
+    private static let lashExtensionIDs: Set<String> = [
+        "lash_ext",
+        "set_classic", "set_babe", "set_wispy", "set_kimk", "set_cateye", "set_volume", "set_animefox", "set_douyin",
+        "upgrade_natural", "upgrade_matte", "lash_lower", "lash_removal", "lash_colour_mix", "lash_custom",
+    ]
+
     private static func categories(for ids: Set<String>) -> [Category] {
         // Nothing chosen yet: show everything.
         guard !ids.isEmpty else { return [.brows, .lashLift, .lashExtensions] }
         var result: [Category] = []
-        if !ids.isDisjoint(with: ["lamination_tint", "lamination", "tint"]) { result.append(.brows) }
-        if !ids.isDisjoint(with: ["lash_lift_tint", "lash_lift", "lash_tint"]) { result.append(.lashLift) }
-        if ids.contains("lash_ext") { result.append(.lashExtensions) }
+        if !ids.isDisjoint(with: browIDs) { result.append(.brows) }
+        if !ids.isDisjoint(with: lashLiftIDs) { result.append(.lashLift) }
+        if !ids.isDisjoint(with: lashExtensionIDs) { result.append(.lashExtensions) }
         return result
     }
 
@@ -56,7 +120,7 @@ enum SerenContent {
     private static let lashLiftTitle = L("Uốn & Nhuộm mi", "Lash Lift & Tint")
     private static let lashExtTitle = L("Nối mi", "Lash Extensions")
 
-    // MARK: 2. Service details
+    // MARK: 3. Service details
 
     static let detailsTitle = L("Nội Dung Dịch Vụ", "Service Details")
 
@@ -94,7 +158,7 @@ enum SerenContent {
         }
     }
 
-    // MARK: 3. Contraindications
+    // MARK: 4. Contraindications
 
     static let contraTitle = L("Chống Chỉ Định", "Contraindications")
     static let contraPrompt = L(
@@ -145,7 +209,7 @@ enum SerenContent {
         categories(for: ids).contains { $0 != .brows }
     }
 
-    // MARK: 4. Aftercare
+    // MARK: 5. Aftercare
 
     static let aftercareTitle = L("Chăm Sóc Sau Dịch Vụ", "Aftercare")
 
@@ -193,7 +257,7 @@ enum SerenContent {
         }
     }
 
-    // MARK: 5. Acknowledgement
+    // MARK: 6. Acknowledgement
 
     static let ackTitle = L("Cam Kết", "Acknowledgement")
     static let ackInformed = L(
@@ -213,7 +277,9 @@ enum SerenContent {
         Option(id: "disagree", label: L("Không đồng ý", "Do not agree")),
     ]
 
-    // MARK: 6. Agreement / signatures
+    // MARK: 7. Your selection & total (wording in Shared/PriceMenu.swift)
+
+    // MARK: 8. Agreement / signatures
 
     static let signTitle = L("Xác Nhận", "Agreement")
     static let customerSignature = L("Chữ ký khách hàng", "Customer Signature")

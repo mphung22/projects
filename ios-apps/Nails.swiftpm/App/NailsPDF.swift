@@ -19,31 +19,25 @@ extension NailsAnswers {
         pdf.field(NailsContent.technician, technician)
 
         pdf.heading(2, NailsContent.servicesTitle)
-        pdf.field(NailsContent.servicesLabel, serviceLabels.map(\.both).joined(separator: ", "))
+        pdf.field(NailsContent.servicesLabel, priceLines.isEmpty
+            ? legacyServiceLabels.map(\.both).joined(separator: ", ")
+            : priceLines.map(\.label.both).joined(separator: ", "))
         pdf.field(NailsContent.shapeLabel, shapeLabel?.both ?? "")
         pdf.field(NailsContent.notesLabel, designNotes)
 
-        pdf.heading(3, NailsContent.healthTitle)
-        if !conditionLabels.isEmpty {
-            pdf.alert(conditionLabels.map(\.both).joined(separator: " • "))
-        }
-        for option in NailsContent.conditions {
-            pdf.check(conditions.contains(option.id), option.label)
-        }
-        pdf.check(noConditions, NailsContent.noneApply)
-        pdf.field(NailsContent.healthDetails, healthDetails)
-
-        pdf.heading(4, NailsContent.infoCareTitle)
+        pdf.heading(3, NailsContent.infoCareTitle)
         pdf.groups([NailsContent.goodToKnow, NailsContent.aftercare])
 
-        pdf.heading(5, NailsContent.ackTitle)
+        pdf.heading(4, NailsContent.ackTitle)
         pdf.check(ackInformed, NailsContent.ackInformed)
-        pdf.check(ackHealth, healthAckText)
         pdf.check(ackRisk, NailsContent.ackRisk)
         pdf.bilingual(NailsContent.photoQuestion)
         for option in NailsContent.photoOptions {
             pdf.check(photoConsent == option.id, option.label)
         }
+
+        pdf.heading(5, PriceText.summaryTitle)
+        pdf.priceSummary(groups: NailsContent.priceGroups, selection: prices)
 
         pdf.heading(6, NailsContent.signTitle)
         pdf.space(6)

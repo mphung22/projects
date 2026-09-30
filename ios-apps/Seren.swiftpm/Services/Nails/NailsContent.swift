@@ -31,8 +31,59 @@ enum NailsContent {
     // MARK: 2. Services
 
     static let servicesTitle = L("Dịch vụ", "Services")
-    static let servicesLabel = L("Dịch vụ (chọn một hoặc nhiều)", "Services (choose one or more)")
-    static let services: [Option] = [
+    static let servicesLabel = L("Chọn dịch vụ (một hoặc nhiều)", "Choose your services (one or more)")
+
+    /// SEREN price list (serensaigon.com/pricing). Edit prices here.
+    static let priceGroups: [PriceGroup] = [
+        PriceGroup(title: L("Bộ đặc trưng", "Signature sets"), items: [
+            PriceItem(id: "set_touch", label: L("Seren Touch — tay hoặc chân", "Seren Touch — hands or feet"), price: 180_000),
+            PriceItem(id: "set_glow", label: L("Seren Glow — bộ gel", "Seren Glow — gel set"), price: 300_000),
+            PriceItem(id: "set_bloom", label: L("Seren Bloom — bộ gel kèm design", "Seren Bloom — gel set with design"), price: 450_000),
+            PriceItem(id: "set_sole", label: L("Seren Sole — chăm sóc móng chân", "Seren Sole — pedicure"), price: 300_000),
+            PriceItem(id: "set_pure", label: L("Seren Pure — móng chân kèm dưỡng thư giãn chân 15 phút và sơn gel",
+                                               "Seren Pure — pedicure with 15-min foot relax and gel polish"), price: 550_000),
+            PriceItem(id: "set_ritual", label: L("Seren Ritual — móng chân kèm dưỡng thư giãn chân 15 phút",
+                                                 "Seren Ritual — pedicure with 15-min foot relax"), price: 450_000),
+        ]),
+        PriceGroup(title: L("Chăm sóc móng", "Nail care"), items: [
+            PriceItem(id: "care_reshape", label: L("Sửa form móng", "Nail reshape"), price: 30_000),
+            PriceItem(id: "care_gel_removal", label: L("Tháo gel / cứng móng", "Gel / hard gel removal"), price: 30_000, maxPrice: 50_000),
+            PriceItem(id: "care_removal", label: L("Tháo móng úp, gel đắp, bột", "Tips, gel or acrylic removal"), price: 50_000, maxPrice: 100_000),
+            PriceItem(id: "care_skin", label: L("Làm sạch da tay / chân", "Hand / foot skin cleansing"), price: 50_000, maxPrice: 60_000),
+            PriceItem(id: "care_refill", label: L("Refill / up gel móng cũ", "Refill / old gel touch-up"), price: 100_000, maxPrice: 250_000),
+            PriceItem(id: "care_extensions", label: L("Đắp gel, bột, Powder X", "Gel, acrylic, Powder X"), price: 380_000),
+            PriceItem(id: "care_base", label: L("Up keo / base", "Glue / base coat application"), price: 100_000, maxPrice: 200_000),
+            PriceItem(id: "care_gelx", label: L("Up gel X", "Gel X application"), price: 280_000),
+            PriceItem(id: "care_dual", label: L("Dual form", "Dual form"), price: 450_000),
+        ]),
+        PriceGroup(title: L("Màu và hiệu ứng", "Colour and finish"), items: [
+            PriceItem(id: "colour_gel", label: L("Sơn gel / thạch", "Gel polish / jelly"), price: 150_000),
+            PriceItem(id: "colour_cateye", label: L("Sơn mắt mèo / nhũ", "Cat eye / flash effect"), price: 220_000),
+            PriceItem(id: "colour_chrome", label: L("Tráng gương", "Mirror chrome effect"), price: 250_000),
+            PriceItem(id: "colour_ombre", label: L("Ombre / French", "Ombre / French"), price: 250_000),
+            PriceItem(id: "colour_biab", label: L("BIAB", "BIAB application"), price: 350_000),
+            PriceItem(id: "colour_hard_arc", label: L("Cứng móng có cầu móng", "Hard nail polish with nail arc"), price: 100_000),
+            PriceItem(id: "colour_hardener", label: L("Sơn cứng móng", "Nail hardening base coat"), price: 50_000),
+            PriceItem(id: "colour_multi", label: L("Sơn trên 3 màu", "More than three colours"), price: 30_000),
+            PriceItem(id: "colour_regular", label: L("Sơn thường", "Regular polish"), price: 100_000),
+        ]),
+        PriceGroup(
+            title: L("Vẽ móng, tính theo ngón", "Nail art, per nail"),
+            note: L("Chọn số ngón sau khi chọn mẫu.", "Choose how many nails after selecting a design."),
+            items: [
+                PriceItem(id: "art_french", label: L("Vẽ viền đầu móng / ombre", "French tip / ombre"), price: 20_000, unit: nailUnit),
+                PriceItem(id: "art_custom", label: L("Design theo mẫu / hoạt hình", "Custom design / cartoon art"), price: 10_000, maxPrice: 50_000, unit: nailUnit),
+                PriceItem(id: "art_marble", label: L("Vẽ vân đá / kim tuyến", "Marble effect / glitter"), price: 10_000, maxPrice: 50_000, unit: nailUnit),
+                PriceItem(id: "art_fishscale", label: L("Vảy cá / ẩn xà cừ", "Fish scale / hidden seashell"), price: 10_000, maxPrice: 50_000, unit: nailUnit),
+                PriceItem(id: "art_charm", label: L("Gắn charm / đá", "Charm / rhinestone"), price: 10_000, maxPrice: 50_000, unit: nailUnit),
+                PriceItem(id: "art_sticker", label: L("Gắn sticker", "Sticker"), price: 10_000, maxPrice: 50_000, unit: nailUnit),
+            ]
+        ),
+    ]
+    private static let nailUnit = L("ngón", "nails")
+
+    /// Service ticks from forms saved before the price list was added (shown on old records only).
+    static let legacyServices: [Option] = [
         Option(id: "manicure", label: L("Làm móng tay", "Manicure")),
         Option(id: "pedicure", label: L("Làm móng chân", "Pedicure")),
         Option(id: "gel", label: L("Sơn gel", "Gel polish")),
@@ -54,32 +105,7 @@ enum NailsContent {
     ]
     static let notesLabel = L("Màu sắc / mẫu mong muốn (không bắt buộc)", "Colour or design wishes (optional)")
 
-    // MARK: 3. Health
-
-    static let healthTitle = L("Tình trạng sức khoẻ", "Health Check")
-    static let healthPrompt = L(
-        "Vui lòng đánh dấu nếu bạn có bất kỳ tình trạng nào dưới đây:",
-        "Please tick any of the following that apply to you:"
-    )
-    static let conditions: [Option] = [
-        Option(id: "diabetes", label: L("Tiểu đường", "Diabetes")),
-        Option(id: "circulation", label: L("Tuần hoàn máu kém", "Poor circulation")),
-        Option(id: "bloodThinners", label: L("Đang dùng thuốc chống đông máu", "Taking blood thinners")),
-        Option(id: "fungus", label: L("Nấm móng hoặc nhiễm trùng móng/da", "Nail fungus or nail/skin infection")),
-        Option(id: "wounds", label: L("Vết cắt, vết thương hở hoặc mụn cóc ở tay/chân", "Cuts, open wounds or warts on hands/feet")),
-        Option(id: "eczema", label: L("Chàm, vảy nến hoặc da nhạy cảm", "Eczema, psoriasis or sensitive skin")),
-        Option(id: "allergy", label: L("Dị ứng gel, bột, acetone hoặc latex", "Allergy to gel, acrylic, acetone or latex")),
-        Option(id: "damaged", label: L("Móng yếu, mỏng hoặc đang bị tổn thương", "Weak, thin or damaged nails")),
-        Option(id: "pregnant", label: L("Đang mang thai", "Pregnant")),
-    ]
-    static let noneApply = L("Tôi không có tình trạng nào ở trên.", "None of the above apply to me.")
-    static let healthDetails = L("Chi tiết thêm (nếu có)", "Details (if any)")
-    static let healthWarning = L(
-        "Vui lòng báo cho kỹ thuật viên trước khi bắt đầu. Để đảm bảo vệ sinh, kỹ thuật viên có thể điều chỉnh hoặc từ chối dịch vụ nếu có dấu hiệu nhiễm trùng.",
-        "Please let your technician know before starting. For hygiene, they may adjust or decline the service if there are signs of infection."
-    )
-
-    // MARK: 4. Good to know & aftercare
+    // MARK: 3. Good to know & aftercare
 
     static let infoCareTitle = L("Lưu ý & Chăm sóc", "Good to Know & Aftercare")
     static let goodToKnow = InfoGroup(title: L("Lưu ý", "Good to know"), items: [
@@ -99,18 +125,12 @@ enum NailsContent {
           "Contact us if your nails lift, break or show any signs of irritation."),
     ])
 
-    // MARK: 5. Acknowledgement
+    // MARK: 4. Acknowledgement
 
     static let ackTitle = L("Cam Kết", "Acknowledgement")
     static let ackInformed = L(
         "Tôi đã được tư vấn về dịch vụ, sản phẩm sử dụng và cách chăm sóc sau dịch vụ.",
         "I have been informed about the service, the products used and aftercare.")
-    static let ackNoConditions = L(
-        "Tôi xác nhận không có tình trạng sức khoẻ nào ở trên.",
-        "I confirm that none of the health conditions above apply to me.")
-    static let ackDiscussed = L(
-        "Tôi đã trao đổi các tình trạng đã đánh dấu ở trên với kỹ thuật viên và đồng ý thực hiện dịch vụ.",
-        "I have discussed the conditions ticked above with my technician and agree to proceed.")
     static let ackRisk = L(
         "Tôi hiểu có thể xảy ra trầy xước nhẹ hoặc kích ứng với sản phẩm, và tiệm sẽ luôn cố gắng hạn chế tối đa.",
         "I understand minor nicks or a reaction to products can occasionally happen, and the salon takes every care to prevent them.")
@@ -121,6 +141,8 @@ enum NailsContent {
         Option(id: "agree", label: L("Đồng ý", "Agree")),
         Option(id: "disagree", label: L("Không đồng ý", "Do not agree")),
     ]
+
+    // MARK: 5. Your selection & total (wording in Shared/PriceMenu.swift)
 
     // MARK: 6. Signatures
 

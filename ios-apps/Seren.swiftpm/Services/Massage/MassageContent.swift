@@ -33,8 +33,48 @@ enum MassageContent {
     // MARK: 2. Service
 
     static let serviceTitle = L("Dịch vụ", "Service")
-    static let serviceType = L("Loại massage", "Massage type")
-    static let services: [Option] = [
+    static let serviceType = L("Chọn dịch vụ (một hoặc nhiều)", "Choose your services (one or more)")
+
+    /// SEREN price list (serensaigon.com/pricing). Edit prices here.
+    static let priceGroups: [PriceGroup] = [
+        PriceGroup(title: L("Body wellness", "Body wellness"), items: [
+            PriceItem(id: "body_60", label: L("Thư giãn body", "Body therapy"), price: 450_000, detail: minutes(60)),
+            PriceItem(id: "body_90", label: L("Thư giãn body", "Body therapy"), price: 625_000, detail: minutes(90)),
+            PriceItem(id: "body_120", label: L("Thư giãn body", "Body therapy"), price: 850_000, detail: minutes(120)),
+            PriceItem(id: "neck_30", label: L("Cổ, vai, gáy", "Neck & shoulder"), price: 250_000, detail: minutes(30)),
+            PriceItem(id: "neck_60", label: L("Cổ, vai, gáy", "Neck & shoulder"), price: 450_000, detail: minutes(60)),
+            PriceItem(id: "foot_30", label: L("Chăm sóc chân", "Foot"), price: 280_000, detail: minutes(30)),
+            PriceItem(id: "foot_60", label: L("Chăm sóc chân", "Foot"), price: 450_000, detail: minutes(60)),
+        ]),
+        PriceGroup(title: L("Tẩy tế bào chết & ủ dưỡng", "Body scrub & glow"), items: [
+            PriceItem(id: "body_scrub", label: L("Tẩy tế bào chết body", "Body scrub"), price: 296_000, detail: minutes(30)),
+            PriceItem(id: "body_wrap", label: L("Dưỡng ủ body", "Body wrap"), price: 280_000, detail: minutes(30)),
+        ]),
+    ]
+
+    /// Items that use massage oil.
+    static var massageIDs: Set<String> { Set(priceGroups[0].items.map(\.id)) }
+
+    private static func minutes(_ n: Int) -> L {
+        L("\(n) phút", "\(n) min", ["zh": "\(n) 分钟", "ko": "\(n)분", "fr": "\(n) min", "ja": "\(n)分", "ru": "\(n) мин"])
+    }
+
+    // Massage oil (OILMART professional spa oils)
+
+    static let oilLabel = L("Chọn dầu massage", "Choose your massage oil")
+    static let oils: [Option] = [
+        Option(id: "calming", label: L("Calming · Oải hương & Hạnh nhân", "Calming · Lavender & Almond")),
+        Option(id: "refreshing", label: L("Refreshing · Chanh vàng, Bưởi & Cam", "Refreshing · Lemon, Grapefruit & Orange")),
+        Option(id: "comforting", label: L("Comforting · Sả & Xô thơm", "Comforting · Lemongrass & Clary Sage")),
+        Option(id: "antiAging", label: L("Anti-Aging · Gừng & Nhụy hoa nghệ tây", "Anti-Aging · Ginger & Saffron")),
+    ]
+    static let almondWarning = L(
+        "Dầu Calming có chứa dầu hạnh nhân. Nếu bạn dị ứng các loại hạt, vui lòng chọn loại dầu khác và báo cho kỹ thuật viên.",
+        "Calming oil contains almond oil. If you have a nut allergy, please choose another oil and tell your therapist."
+    )
+
+    /// Choices from forms saved before the price list was added (shown on old records only).
+    static let legacyServices: [Option] = [
         Option(id: "swedish", label: L("Massage thư giãn toàn thân", "Swedish / Relaxation")),
         Option(id: "deep", label: L("Massage mô sâu", "Deep Tissue")),
         Option(id: "hotstone", label: L("Massage đá nóng", "Hot Stone")),
@@ -43,8 +83,7 @@ enum MassageContent {
         Option(id: "foot", label: L("Massage chân / bấm huyệt", "Foot / Reflexology")),
         Option(id: "prenatal", label: L("Massage cho mẹ bầu", "Prenatal")),
     ]
-    static let durationLabel = L("Thời gian", "Duration")
-    static let durations: [Option] = [
+    static let legacyDurations: [Option] = [
         Option(id: "30", label: L("30 phút", "30 minutes")),
         Option(id: "60", label: L("60 phút", "60 minutes")),
         Option(id: "90", label: L("90 phút", "90 minutes")),
@@ -78,40 +117,7 @@ enum MassageContent {
         Option(id: "feet", label: L("Bàn chân", "Feet")),
     ]
 
-    // MARK: 4. Health
-
-    static let healthTitle = L("Tình trạng sức khoẻ", "Health Information")
-    static let healthPrompt = L(
-        "Vui lòng đánh dấu nếu bạn có bất kỳ tình trạng nào dưới đây:",
-        "Please tick any of the following that apply to you:"
-    )
-    static let conditions: [Option] = [
-        Option(id: "pregnant", label: L("Đang mang thai", "Pregnant")),
-        Option(id: "bloodPressure", label: L("Huyết áp cao hoặc thấp", "High or low blood pressure")),
-        Option(id: "heart", label: L("Bệnh tim mạch", "Heart condition")),
-        Option(id: "diabetes", label: L("Tiểu đường", "Diabetes")),
-        Option(id: "surgery", label: L("Phẫu thuật hoặc chấn thương trong 6 tháng gần đây",
-                                       "Surgery or injury in the last 6 months")),
-        Option(id: "clots", label: L("Huyết khối hoặc giãn tĩnh mạch", "Blood clots or varicose veins")),
-        Option(id: "bloodThinners", label: L("Đang dùng thuốc chống đông máu", "Taking blood thinners")),
-        Option(id: "skin", label: L("Bệnh da, phát ban hoặc vết thương hở", "Skin condition, rash or open wounds")),
-        Option(id: "contagious", label: L("Sốt, cảm cúm hoặc bệnh truyền nhiễm", "Fever, flu or contagious illness")),
-        Option(id: "joints", label: L("Loãng xương, thoát vị đĩa đệm hoặc bệnh xương khớp",
-                                      "Osteoporosis, herniated disc or joint problems")),
-        Option(id: "cancer", label: L("Ung thư hoặc đang điều trị", "Cancer or currently in treatment")),
-        Option(id: "epilepsy", label: L("Động kinh", "Epilepsy / seizures")),
-        Option(id: "allergy", label: L("Dị ứng dầu, kem, hạt hoặc hương liệu",
-                                       "Allergy to oils, lotions, nuts or fragrances")),
-    ]
-    static let noneApply = L("Tôi không có tình trạng nào ở trên.", "None of the above apply to me.")
-    static let healthDetails = L("Chi tiết thêm (nếu có)", "Details (if any)")
-    static let medications = L("Thuốc đang sử dụng", "Current medications")
-    static let healthWarning = L(
-        "Vui lòng trao đổi với kỹ thuật viên trước khi bắt đầu. Kỹ thuật viên có thể điều chỉnh hoặc khuyên bạn hỏi ý kiến bác sĩ.",
-        "Please talk to your therapist before starting. They may adjust the massage or recommend checking with your doctor."
-    )
-
-    // MARK: 5. Aftercare
+    // MARK: 4. Aftercare
 
     static let aftercareTitle = L("Chăm sóc sau massage", "Aftercare")
     static let aftercare: [L] = [
@@ -124,6 +130,8 @@ enum MassageContent {
           "Contact us if pain persists or you feel unwell."),
     ]
 
+    // MARK: 5. Your selection & total (wording in Shared/PriceMenu.swift)
+
     // MARK: 6. Consent
 
     static let consentTitle = L("Cam kết & Xác nhận", "Consent & Signature")
@@ -131,8 +139,8 @@ enum MassageContent {
     static func agreements(businessName: String) -> [Option] {
         [
             Option(id: "accurate", label: L(
-                "Tôi xác nhận thông tin sức khoẻ trên là chính xác và sẽ báo ngay cho kỹ thuật viên nếu có thay đổi.",
-                "I confirm the health information above is accurate and I will tell my therapist about any changes.")),
+                "Tôi xác nhận thông tin trên là chính xác và sẽ báo cho kỹ thuật viên trước khi bắt đầu nếu có vấn đề sức khoẻ cần lưu ý.",
+                "I confirm the information above is accurate and I will tell my therapist before we start about any health concerns.")),
             Option(id: "notMedical", label: L(
                 "Tôi hiểu massage nhằm mục đích thư giãn và chăm sóc sức khoẻ, không thay thế cho chẩn đoán hay điều trị y khoa.",
                 "I understand massage is for relaxation and wellness and is not a substitute for medical diagnosis or treatment.")),

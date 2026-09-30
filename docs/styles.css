@@ -111,6 +111,8 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 3px s
 
 .choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .choices.wide { grid-template-columns: 1fr; }
+.choice-heading { grid-column: 1 / -1; margin: 12px 0 0; font-size: 16px; }
+.choice-heading:first-child { margin-top: 0; }
 .chip {
   display: flex; gap: 10px; align-items: flex-start;
   width: 100%; text-align: left;
@@ -134,7 +136,7 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 3px s
 .consents ul.bullets { margin-bottom: 14px; }
 .chip.agree-all { padding: 14px 16px; }
 .with-price { display: flex; flex-direction: column; gap: 4px; }
-.price { font-weight: 700; color: var(--accent); white-space: nowrap; }
+.price { font-weight: 700; color: var(--accent); }
 .divider { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
 
 ul.bullets { margin: 0; padding-left: 20px; }
@@ -177,3 +179,10 @@ ul.bullets li + li { margin-top: 8px; }
 .done .big { font-size: 64px; }
 
 .hidden-honeypot { position: absolute; left: -9999px; }
+
+/* Itemised bill before the signature */
+.muted { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+.bill-line { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.bill-line .price { text-align: right; }
+.bill-total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; padding-top: 12px; font-size: 20px; font-weight: 700; }
+.bill-total .price { margin-left: auto; }
