@@ -54,7 +54,7 @@ enum SerenContent {
         PriceGroup(title: L("Nối mi — dịch vụ khác", "Lashes — other services"), items: [
             PriceItem(id: "lash_lift", label: L("Uốn mi", "Lash lift"), price: 300_000),
             PriceItem(id: "lash_design_lift", label: L("Uốn mi design", "Design lash lift"), price: 350_000),
-            PriceItem(id: "lash_lift_backtint", label: L("Uốn & nhuộm phủ đen", "Lash lift & backtint"), price: 350_000),
+            PriceItem(id: "lash_lift_backtint", label: L("Uốn & nhuộm phủ đen", "Lash lift & backtint"), price: 400_000),
             PriceItem(id: "lash_tinting", label: L("Phủ đen mi", "Lash tinting"), price: 150_000),
             PriceItem(id: "lash_straightening", label: L("Duỗi mi", "Lash straightening"), price: 100_000),
             PriceItem(id: "lash_lower", label: L("Nối mi dưới", "Lower lash extension"), price: 100_000),
