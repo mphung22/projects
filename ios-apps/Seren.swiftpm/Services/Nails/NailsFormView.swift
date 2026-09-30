@@ -25,8 +25,6 @@ struct NailsFormView: View {
                 PriceSummaryView(groups: NailsContent.priceGroups, selection: answers.prices)
             }
 
-            FormSection(number: 6, title: NailsContent.signTitle) { signatures }
-
             SubmitButton(title: NailsContent.submit, action: submit)
                 .padding(.bottom, 40)
         }
@@ -85,14 +83,6 @@ struct NailsFormView: View {
                 )
             )
             .padding(.top, 16)
-        }
-    }
-
-    private var signatures: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            SignaturePad(title: NailsContent.customerSignature, signature: $answers.customerSignature, required: true)
-            Text("Ngày / Date: \(Formatters.date.string(from: Date()))")
-                .foregroundStyle(.secondary)
         }
     }
 

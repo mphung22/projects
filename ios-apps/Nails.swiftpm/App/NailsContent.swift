@@ -15,8 +15,8 @@ enum NailsContent {
     static let serviceName = L("Làm Móng", "Nails")
 
     static let intro = L(
-        "Vui lòng điền thông tin, đọc kỹ các mục bên dưới và ký tên xác nhận.",
-        "Please fill in your details, read each section carefully and sign at the end."
+        "Vui lòng điền thông tin và đọc kỹ các mục bên dưới.",
+        "Please fill in your details and read each section carefully."
     )
 
     // MARK: 1. Customer information

@@ -20,6 +20,7 @@ struct HeadSpaAnswers: FormAnswers {
     /// Ids of the consent statements the customer ticked.
     var agreements: Set<String> = []
 
+    /// Only on records saved before this form stopped asking for a signature.
     var customerSignature: Data?
     var therapistSignature: Data?
 
@@ -46,7 +47,6 @@ struct HeadSpaAnswers: FormAnswers {
         if !allAgreements.isSubset(of: agreements) {
             missing.append(L("Đánh dấu ô đồng ý các cam kết", "Tick the box to agree to the statements"))
         }
-        if customerSignature == nil { missing.append(HeadSpaContent.customerSignature) }
         return missing
     }
 

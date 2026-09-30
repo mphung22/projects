@@ -20,6 +20,7 @@ struct NailsAnswers: FormAnswers {
     /// "agree" / "disagree" / "" (not answered)
     var photoConsent = ""
 
+    /// Only on records saved before this form stopped asking for a signature.
     var customerSignature: Data?
     var technicianSignature: Data?
 
@@ -40,7 +41,6 @@ struct NailsAnswers: FormAnswers {
             missing.append(L("Đánh dấu ô đồng ý các cam kết", "Tick the box to agree to the statements"))
         }
         if photoConsent.isEmpty { missing.append(NailsContent.photoQuestion) }
-        if customerSignature == nil { missing.append(NailsContent.customerSignature) }
         return missing
     }
 

@@ -15,8 +15,8 @@ enum HeadSpaContent {
     static let serviceName = L("Gội Đầu Dưỡng Sinh", "Head Spa")
 
     static let intro = L(
-        "Để buổi gội đầu dưỡng sinh an toàn và thư giãn, vui lòng điền thông tin bên dưới và ký tên xác nhận.",
-        "To make your head spa safe and relaxing, please complete the form below and sign at the end."
+        "Để buổi gội đầu dưỡng sinh an toàn và thư giãn, vui lòng điền thông tin bên dưới.",
+        "To make your head spa safe and relaxing, please complete the form below."
     )
 
     // MARK: 1. Customer information
@@ -103,7 +103,7 @@ enum HeadSpaContent {
 
     // MARK: 5. Consent
 
-    static let consentTitle = L("Cam kết & Xác nhận", "Consent & Signature")
+    static let consentTitle = L("Cam kết", "Consent")
 
     static func agreements(businessName: String) -> [Option] {
         [

@@ -43,12 +43,17 @@ extension MassageAnswers {
             pdf.check(agreements.contains(option.id), option.label)
         }
         pdf.space(8)
-        let day = Formatters.date.string(from: submittedAt)
-        pdf.signatures([
-            .init(title: "Khách hàng / Customer",
-                  image: customerSignature.image, name: fullName, date: day),
-        ])
-        pdf.bilingual(L("Ký điện tử trên iPad lúc \(submitted).", "Signed electronically on iPad at \(submitted)."))
+        if customerSignature != nil {
+            // Records saved before this form stopped asking for a signature.
+            let day = Formatters.date.string(from: submittedAt)
+            pdf.signatures([
+                .init(title: "Khách hàng / Customer",
+                      image: customerSignature.image, name: fullName, date: day),
+            ])
+            pdf.bilingual(L("Ký điện tử trên iPad lúc \(submitted).", "Signed electronically on iPad at \(submitted)."))
+        } else {
+            pdf.bilingual(L("Khách hàng xác nhận trên iPad lúc \(submitted).", "Confirmed by the customer on iPad at \(submitted)."))
+        }
 
         return pdf.render()
     }

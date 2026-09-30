@@ -87,10 +87,9 @@ struct HeadSpaFormView: View {
                     set: { answers.agreements = $0 ? Set(agreements.map(\.id)) : [] }
                 )
             )
-            SignaturePad(title: HeadSpaContent.customerSignature, signature: $answers.customerSignature, required: true)
-                .padding(.top, 20)
             Text("Ngày / Date: \(Formatters.date.string(from: Date()))")
                 .foregroundStyle(.secondary)
+                .padding(.top, 12)
         }
     }
 
