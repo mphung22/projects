@@ -288,7 +288,6 @@ const SERVICES = [
       ] },
       { title: L('Cam kết', 'Consent'), items: wellnessAgreements(L('massage', 'massage')) },
       totalSection,
-      signatureSection,
     ],
   },
 
@@ -367,7 +366,6 @@ const SERVICES = [
         ]),
       ] },
       totalSection,
-      signatureSection,
     ],
   },
 
@@ -414,6 +412,67 @@ const SERVICES = [
         ] },
       ] },
       { title: L('Cam kết', 'Consent'), items: wellnessAgreements(L('gội đầu dưỡng sinh', 'head spa')) },
+      totalSection,
+    ],
+  },
+  {
+    id: 'waxing', icon: '🌸',
+    name: L('Wax lông', 'Waxing'),
+    title: L('Hợp đồng dịch vụ', 'Service Agreement'),
+    sections: [
+      { title: L('Thông tin khách hàng', 'Customer Information'), items: [
+        F.name, F.phone, F.dob(false), F.technician(),
+        { type: 'multi', key: 'wax_services', required: true,
+          label: L('Vùng wax (chọn một hoặc nhiều)', 'Areas to wax (choose one or more)'),
+          // Menu and prices from serensaigon.com/pricing (waxing).
+          options: [
+            { id: 'wax_fingers_toes', label: L('Ngón tay, ngón chân', 'Fingers and toes'), price: '50.000₫' },
+            { id: 'wax_underarms', label: L('Nách', 'Underarms'), price: '100.000₫' },
+            { id: 'wax_full_arms', label: L('Cánh tay', 'Full arms'), price: '250.000₫' },
+            { id: 'wax_half_leg', label: L('½ chân', 'Half leg'), price: '300.000₫' },
+            { id: 'wax_full_leg', label: L('Full chân', 'Full leg'), price: '400.000₫' },
+            { id: 'wax_back', label: L('Lưng', 'Full back'), price: '450.000₫' },
+            { id: 'wax_neck', label: L('Tóc gáy', 'Neck hair'), price: '150.000₫' },
+            { id: 'wax_lip_nose', label: L('Mép, lông mũi', 'Lip edge and nose hair'), price: '100.000₫' },
+            { id: 'wax_belly_chest', label: L('Bụng, ngực', 'Belly and chest'), price: '200.000₫' },
+            { id: 'wax_ears_sideburns', label: L('Lỗ tai, tóc mai', 'Ears and sideburns'), price: '80.000₫' },
+            { id: 'wax_eyebrow', label: L('Chân mày', 'Eyebrow'), price: '100.000₫' },
+            { id: 'wax_bikini', label: L('Bikini', 'Bikini'), price: '450.000₫' },
+            { id: 'wax_butt', label: L('Mông', 'Butt'), price: '450.000₫' },
+            { id: 'wax_package', label: L('Gói: tay, chân, nách, bikini', 'Package: arms, legs, underarms and bikini'), price: '950.000₫' },
+          ] },
+      ] },
+      { title: L('Chống Chỉ Định', 'Contraindications'), items: [
+        { type: 'checklist', key: 'contraindications', autoUnder16: 'under16',
+          warning: L('Vui lòng báo cho kỹ thuật viên trước khi tiếp tục. Kỹ thuật viên sẽ tư vấn dịch vụ có phù hợp với bạn hay không.',
+                     'Please let your technician know before continuing. They will advise whether this service is suitable for you.'),
+          options: [
+            { id: 'retinoid', label: L('Đang hoặc trong 6 tháng qua dùng Retinol, AHA/BHA hoặc thuốc trị mụn (ví dụ isotretinoin).', 'Using Retinol, AHA/BHA or acne medication (e.g. isotretinoin) now or in the last 6 months.') },
+            { id: 'skin', label: L('Da bị cháy nắng, trầy xước, kích ứng hoặc mới peel/laser ở vùng wax.', 'Sunburn, broken or irritated skin, or a recent peel or laser treatment on the area.') },
+            { id: 'circulation', label: L('Tiểu đường, vấn đề tuần hoàn, giãn tĩnh mạch hoặc đang dùng thuốc chống đông máu.', 'Diabetes, circulation problems, varicose veins or blood-thinning medication.') },
+            { id: 'allergy', label: L('Dị ứng với sáp wax, nhựa thông hoặc sản phẩm chăm sóc da.', 'Allergy to wax, rosin or skin care products.') },
+            { id: 'pregnant', label: L('Đang mang thai.', 'Pregnant.') },
+            { id: 'under16', label: L('Dưới 16 tuổi.', 'Under 16 years old.') },
+          ] },
+      ] },
+      { title: L('Chăm Sóc Sau Dịch Vụ', 'Aftercare'), items: [
+        { type: 'info', groups: () => [{ title: L('Sau khi wax', 'After waxing'), items: [
+          L('Tránh tắm nước nóng, xông hơi, bơi và tập thể dục trong 24 giờ.', 'Avoid hot showers, saunas, swimming and exercise for 24 hours.'),
+          L('Tránh nắng và tắm nắng trong 48 giờ.', 'Avoid the sun and tanning for 48 hours.'),
+          L('Không dùng nước hoa, lăn khử mùi hoặc tẩy tế bào chết trên vùng wax trong 24 giờ.', 'No perfume, deodorant or exfoliants on the waxed area for 24 hours.'),
+          L('Mặc quần áo rộng rãi. Sau 2–3 ngày, tẩy tế bào chết nhẹ nhàng để tránh lông mọc ngược.', 'Wear loose clothing. After 2–3 days, exfoliate gently to prevent ingrown hairs.'),
+          L('Da hơi đỏ hoặc nổi mẩn trong vài giờ là bình thường.', 'Mild redness or bumps for a few hours are normal.'),
+        ] }] },
+      ] },
+      { title: L('Cam Kết', 'Acknowledgement'), items: [
+        consents([
+          L('Tôi đã được tư vấn đầy đủ về quy trình, rủi ro và chăm sóc sau dịch vụ.', 'I have been fully informed about the procedure, risks, and aftercare.'),
+          L('Tôi hiểu da có thể bị đỏ, nhạy cảm hoặc bầm nhẹ sau khi wax.', 'I understand redness, sensitivity or minor bruising can occur after waxing.'),
+          (s) => (s.contraindications?.ticked?.length
+            ? L('Tôi đã trao đổi các tình trạng đã đánh dấu ở trên với kỹ thuật viên và đồng ý thực hiện dịch vụ.', 'I have discussed the conditions ticked above with my technician and agree to proceed.')
+            : L('Tôi xác nhận không có chống chỉ định và không đang mang thai.', 'I confirm that I have no contraindications and I am not pregnant.')),
+        ], { resetWith: 'contraindications' }),
+      ] },
       totalSection,
       signatureSection,
     ],
@@ -808,6 +867,9 @@ function renderSignature(item) {
       h('button', { type: 'button', class: 'link-button', onclick: clear }, txt(T.clear))));
 }
 
+/** Whether the current form asks for a signature (Brows & Lashes and Waxing do). */
+const hasSignature = () => !!signaturePad && allItems().some((item) => item.type === 'signature');
+
 /** The signature on a white background, as a PNG data URL. */
 function signatureDataURL() {
   const src = signaturePad.canvas;
@@ -954,7 +1016,11 @@ async function submit() {
       language: lang,
       summary: buildSummary(),
       answers_json: JSON.stringify({ service: service.id, ...answers }),
-      signature: signatureDataURL(),
+      signature: hasSignature() ? signatureDataURL() : '',
+      // Short English versions for the Google Sheet.
+      service_en: service.name.en,
+      chosen_en: priced().lines.map((l) => l.option.label.en).join(', '),
+      total_vnd: priced().lines.length ? priced().lo : '',
     };
     // text/plain keeps this a "simple" request, which Google Apps Script accepts from any site.
     const response = await fetch(endpoint, {
