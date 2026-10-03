@@ -40,15 +40,15 @@ enum HeadSpaContent {
     static let priceGroups: [PriceGroup] = [
         PriceGroup(title: L("Liệu trình gội đầu dưỡng sinh", "Head spa rituals"), singleChoice: true, items: [
             PriceItem(id: "ritual_refresh", label: L("Seren Refresh", "Seren Refresh"), price: 109_000, detail: minutes(30)),
-            PriceItem(id: "ritual_balance", label: L("Seren Balance", "Seren Balance"), price: 289_000, detail: minutes(60)),
-            PriceItem(id: "ritual_bloom", label: L("Seren Bloom", "Seren Bloom"), price: 329_000, detail: minutes(80)),
-            PriceItem(id: "ritual_signature", label: L("Seren Signature Ritual", "Seren Signature Ritual"), price: 539_000, detail: minutes(100)),
-            PriceItem(id: "ritual_glow", label: L("Seren Glow", "Seren Glow"), price: 709_000, detail: minutes(130)),
+            PriceItem(id: "ritual_balance", label: L("Seren Balance", "Seren Balance"), price: 299_000, detail: minutes(60)),
+            PriceItem(id: "ritual_bloom", label: L("Seren Bloom", "Seren Bloom"), price: 389_000, detail: minutes(80)),
+            PriceItem(id: "ritual_signature", label: L("Seren Signature Ritual", "Seren Signature Ritual"), price: 559_000, detail: minutes(100)),
+            PriceItem(id: "ritual_glow", label: L("Seren Glow", "Seren Glow"), price: 749_000, detail: minutes(130)),
             PriceItem(id: "ritual_sanctuary", label: L("Seren Sanctuary", "Seren Sanctuary"), price: 909_000, detail: minutes(160)),
         ]),
         PriceGroup(title: L("Dịch vụ thêm", "Ritual add-ons"), items: [
             PriceItem(id: "addon_facial_scrub", label: L("Tẩy tế bào chết mặt", "Facial scrub"), price: 50_000),
-            PriceItem(id: "addon_facial_massage", label: L("Massage mặt", "Facial massage"), price: 50_000),
+            PriceItem(id: "addon_facial_massage", label: L("Chăm sóc da mặt cơ bản", "Facial basic"), price: 50_000),
             PriceItem(id: "addon_facial_mask", label: L("Đắp mặt nạ", "Facial mask"), price: 50_000),
             PriceItem(id: "addon_eye_mask", label: L("Mặt nạ mắt", "Eye mask"), price: 30_000),
             PriceItem(id: "addon_hot_stone", label: L("Đá nóng", "Hot stone"), price: 50_000),
