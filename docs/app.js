@@ -301,7 +301,7 @@ const SERVICES = [
         // Menu and prices from serensaigon.com/pricing.
         { type: 'multi', key: 'nail_services', required: true, label: L('Dịch vụ (chọn một hoặc nhiều)', 'Services (choose one or more)'), options: [
           heading(L('Bộ đặc trưng', 'Signature sets')),
-          { id: 'set_touch', label: L('Seren Touch — tay hoặc chân', 'Seren Touch — hands or feet'), price: '180.000₫' },
+          { id: 'set_touch', label: L('Seren Touch — tay hoặc chân', 'Seren Touch — hands or feet'), price: '200.000₫' },
           { id: 'set_glow', label: L('Seren Glow — bộ gel', 'Seren Glow — gel set'), price: '300.000₫' },
           { id: 'set_bloom', label: L('Seren Bloom — bộ gel kèm design', 'Seren Bloom — gel set with design'), price: '450.000₫' },
           { id: 'set_sole', label: L('Seren Sole — chăm sóc móng chân', 'Seren Sole — pedicure'), price: '300.000₫' },
@@ -381,15 +381,15 @@ const SERVICES = [
         // Rituals and add-ons from serensaigon.com/pricing.
         { type: 'single', key: 'treatment', required: true, label: L('Liệu trình', 'Ritual'), options: [
           { id: 'refresh', label: L('Seren Refresh · 30 phút', 'Seren Refresh · 30 min'), price: '109.000₫' },
-          { id: 'balance', label: L('Seren Balance · 60 phút', 'Seren Balance · 60 min'), price: '289.000₫' },
-          { id: 'bloom', label: L('Seren Bloom · 80 phút', 'Seren Bloom · 80 min'), price: '329.000₫' },
-          { id: 'signature', label: L('Seren Signature Ritual · 100 phút', 'Seren Signature Ritual · 100 min'), price: '539.000₫' },
-          { id: 'glow', label: L('Seren Glow · 130 phút', 'Seren Glow · 130 min'), price: '709.000₫' },
+          { id: 'balance', label: L('Seren Balance · 60 phút', 'Seren Balance · 60 min'), price: '299.000₫' },
+          { id: 'bloom', label: L('Seren Bloom · 80 phút', 'Seren Bloom · 80 min'), price: '389.000₫' },
+          { id: 'signature', label: L('Seren Signature Ritual · 100 phút', 'Seren Signature Ritual · 100 min'), price: '559.000₫' },
+          { id: 'glow', label: L('Seren Glow · 130 phút', 'Seren Glow · 130 min'), price: '749.000₫' },
           { id: 'sanctuary', label: L('Seren Sanctuary · 160 phút', 'Seren Sanctuary · 160 min'), price: '909.000₫' },
         ] },
         { type: 'multi', key: 'addons', label: L('Dịch vụ thêm (không bắt buộc)', 'Add-ons (optional)'), options: [
           { id: 'facial_scrub', label: L('Tẩy tế bào chết mặt', 'Facial scrub'), price: '50.000₫' },
-          { id: 'facial_massage', label: L('Massage mặt', 'Facial massage'), price: '50.000₫' },
+          { id: 'facial_massage', label: L('Chăm sóc da mặt cơ bản', 'Facial basic'), price: '50.000₫' },
           { id: 'facial_mask', label: L('Đắp mặt nạ', 'Facial mask'), price: '50.000₫' },
           { id: 'eye_mask', label: L('Mặt nạ mắt', 'Eye mask'), price: '30.000₫' },
           { id: 'hot_stone', label: L('Đá nóng', 'Hot stone'), price: '50.000₫' },

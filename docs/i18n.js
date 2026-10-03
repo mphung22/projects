@@ -226,6 +226,7 @@ window.SEREN_I18N = {
     "Add-ons (optional)": { zh: "加购项目（选填）", ko: "추가 서비스 (선택)", fr: "Options (facultatif)", ja: "追加メニュー（任意）", ru: "Дополнительно (необязательно)" },
     "Facial scrub": { zh: "面部去角质", ko: "페이셜 스크럽", fr: "Gommage du visage", ja: "フェイシャルスクラブ", ru: "Скраб для лица" },
     "Facial massage": { zh: "面部按摩", ko: "페이셜 마사지", fr: "Massage du visage", ja: "フェイシャルマッサージ", ru: "Массаж лица" },
+    "Facial basic": { zh: "基础面部护理", ko: "베이직 페이셜", fr: "Soin du visage basique", ja: "ベーシックフェイシャル", ru: "Базовый уход за лицом" },
     "Facial mask": { zh: "面膜", ko: "페이셜 마스크", fr: "Masque visage", ja: "フェイスマスク", ru: "Маска для лица" },
     "Eye mask": { zh: "眼膜", ko: "아이 마스크", fr: "Masque yeux", ja: "アイマスク", ru: "Маска для глаз" },
     "Hot stone": { zh: "热石", ko: "핫스톤", fr: "Pierres chaudes", ja: "ホットストーン", ru: "Горячие камни" },
