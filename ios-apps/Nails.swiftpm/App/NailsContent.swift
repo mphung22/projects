@@ -36,7 +36,7 @@ enum NailsContent {
     /// SEREN price list (serensaigon.com/pricing). Edit prices here.
     static let priceGroups: [PriceGroup] = [
         PriceGroup(title: L("Bộ đặc trưng", "Signature sets"), items: [
-            PriceItem(id: "set_touch", label: L("Seren Touch — tay hoặc chân", "Seren Touch — hands or feet"), price: 180_000),
+            PriceItem(id: "set_touch", label: L("Seren Touch — tay hoặc chân", "Seren Touch — hands or feet"), price: 200_000),
             PriceItem(id: "set_glow", label: L("Seren Glow — bộ gel", "Seren Glow — gel set"), price: 300_000),
             PriceItem(id: "set_bloom", label: L("Seren Bloom — bộ gel kèm design", "Seren Bloom — gel set with design"), price: 450_000),
             PriceItem(id: "set_sole", label: L("Seren Sole — chăm sóc móng chân", "Seren Sole — pedicure"), price: 300_000),
