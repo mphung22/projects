@@ -1,13 +1,15 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" translate="no" class="notranslate">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
+  <!-- The page is already Vietnamese + English; stop Chrome from machine-translating it. -->
+  <meta name="google" content="notranslate">
   <meta name="theme-color" content="#f7f4ee">
   <title>Seren · Hoá đơn</title>
   <link rel="stylesheet" href="../styles.css">
-  <link rel="stylesheet" href="bill.css">
+  <link rel="stylesheet" href="bill.css?v=3">
 </head>
 <body>
 
@@ -27,6 +29,6 @@
   <!-- app.js holds the menu and prices shared with the check-in forms; this flag stops it drawing the check-in screen. -->
   <script>window.SEREN_MENU_ONLY = true;</script>
   <script src="../app.js"></script>
-  <script src="bill.js"></script>
+  <script src="bill.js?v=3"></script>
 </body>
 </html>

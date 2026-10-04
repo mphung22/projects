@@ -141,6 +141,19 @@ main { padding-bottom: 96px; }
 .receipt-actions { max-width: 420px; margin: 20px auto 0; display: grid; gap: 12px; justify-items: center; }
 .receipt-actions .secondary[disabled] { opacity: .5; }
 
+/* Computer / iPad landscape: services on the left, the bill on the right and always in view. */
+@media (min-width: 980px) {
+  main { max-width: 1240px; padding-bottom: 48px; }
+  .stack.two-col {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 440px);
+    gap: 20px; align-items: start;
+  }
+  .stack.two-col > * + * { margin-top: 0; }
+  #bill-card { position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; }
+  .sticky-total { display: none !important; }
+  .receipt-bar, .receipt-actions { max-width: 420px; margin-left: auto; margin-right: auto; }
+}
+
 @media print {
   @page { margin: 6mm; }
   body { background: #fff; padding: 0; }
@@ -150,4 +163,8 @@ main { padding-bottom: 96px; }
   .r-brand { font-size: 20px; }
   .r-total { font-size: 16px; }
   .r-items, .r-total, .r-title, .r-foot { break-inside: avoid; }
+  /* Receipt printers print grey faintly, so print everything in solid black. */
+  .receipt, .receipt * { color: #000 !important; }
+  .r-title, .r-foot { border-top-color: #000; }
+  .r-items, .r-total { border-color: #000; }
 }

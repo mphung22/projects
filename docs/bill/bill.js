@@ -260,7 +260,7 @@
     document.body.classList.remove('on-receipt');
     app.replaceChildren(
       h('div', { class: 'hero' }, lt(S.title, 'h1'), h('p', {}, lt(S.sub))),
-      h('div', { class: 'stack' },
+      h('div', { class: 'stack two-col' },
         h('section', { class: 'card', id: 'menu-card' }, sectionTitle(1, S.add), h('div', { id: 'menu' })),
         h('section', { class: 'card', id: 'bill-card' }, sectionTitle(2, S.bill), h('div', { id: 'bill' }))),
       h('div', { class: 'sticky-total', id: 'sticky' }),
