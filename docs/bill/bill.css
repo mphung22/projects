@@ -142,10 +142,10 @@ main { padding-bottom: 96px; }
 .receipt-actions .secondary[disabled] { opacity: .5; }
 
 /* Computer / iPad landscape: services on the left, the bill on the right and always in view. */
-@media (min-width: 980px) {
+@media (min-width: 820px) {
   main { max-width: 1240px; padding-bottom: 48px; }
   .stack.two-col {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 440px);
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
     gap: 20px; align-items: start;
   }
   .stack.two-col > * + * { margin-top: 0; }
