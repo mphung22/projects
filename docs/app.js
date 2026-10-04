@@ -1059,19 +1059,22 @@ function showThanks() {
 // Start
 // ---------------------------------------------------------------------------
 
-for (const l of I18N.languages) langSelect.append(h('option', { value: l.code }, l.name));
-langSelect.value = lang;
-langSelect.addEventListener('change', () => {
-  lang = langSelect.value;
-  store.set('seren-lang', lang);
-  if (service && app.querySelector('#submit')) renderForm(); else if (service) showThanks(); else showChooser();
-});
-backButton.addEventListener('click', () => {
-  if (Object.keys(state).length && !window.confirm(txt(L('Quay lại? Thông tin đã nhập sẽ bị xoá.', 'Go back? Your answers will be cleared.')))) return;
-  showChooser();
-});
+// The bill page (bill/) loads this file only for the menu and prices, so it sets SEREN_MENU_ONLY and skips the form.
+if (!window.SEREN_MENU_ONLY) {
+  for (const l of I18N.languages) langSelect.append(h('option', { value: l.code }, l.name));
+  langSelect.value = lang;
+  langSelect.addEventListener('change', () => {
+    lang = langSelect.value;
+    store.set('seren-lang', lang);
+    if (service && app.querySelector('#submit')) renderForm(); else if (service) showThanks(); else showChooser();
+  });
+  backButton.addEventListener('click', () => {
+    if (Object.keys(state).length && !window.confirm(txt(L('Quay lại? Thông tin đã nhập sẽ bị xoá.', 'Go back? Your answers will be cleared.')))) return;
+    showChooser();
+  });
 
-// Deep link: checkin.serensaigon.com/?service=nails opens that form directly.
-const requested = new URLSearchParams(location.search).get('service');
-const direct = SERVICES.find((s) => s.id === requested);
-if (direct) startService(direct); else showChooser();
+  // Deep link: checkin.serensaigon.com/?service=nails opens that form directly.
+  const requested = new URLSearchParams(location.search).get('service');
+  const direct = SERVICES.find((s) => s.id === requested);
+  if (direct) startService(direct); else showChooser();
+}
