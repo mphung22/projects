@@ -24,11 +24,8 @@ main { padding-bottom: 96px; }
 .cust-grid .field + .field { margin-top: 0; }
 
 /* Category tabs */
-.tabs {
-  display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
-  margin: 0 -20px 14px; padding: 0 20px 4px; scrollbar-width: none;
-}
-.tabs::-webkit-scrollbar { display: none; }
+/* Tabs wrap onto extra lines so every category is visible without sideways scrolling. */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 .tab {
   flex: none; display: flex; align-items: center; gap: 6px;
   font: inherit; font-size: 15px; color: var(--ink);
