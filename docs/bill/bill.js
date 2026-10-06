@@ -3,9 +3,15 @@
 
    The menu and prices come from ../app.js (SERVICES), the same list the check-in forms use, so a price changed
    there changes here too. Only the member cards below are listed in this file.
-   Nothing is sent anywhere. The bill in progress is kept on this device so a page reload does not lose it. */
+   Each service line records which staff member did it. "Lưu hoá đơn / Save bill" (and printing) sends the bill to
+   Seren's private Google Sheet through the same Google Apps Script as the check-in (config.js), where the sheet
+   adds daily totals by money source and staff commission. Saving the same bill again replaces it.
+   The bill in progress is kept on this device so a page reload does not lose it; a bill that could not be sent
+   (no internet) is kept and sent again automatically. */
 (() => {
   'use strict';
+
+  const W = (vi, en) => ({ vi, en });
 
   const SHOP = {
     name: 'SEREN',
@@ -21,9 +27,25 @@
   const VAT_PAYMENTS = ['card'];
   const TZ = 'Asia/Ho_Chi_Minh';
   const STORE_KEY = 'seren-bill';
-  const LANG_KEY = 'seren-bill-lang';
+  const QUEUE_KEY = 'seren-bill-queue';
 
-  const W = (vi, en) => ({ vi, en });
+  // Staff who do services. Add or remove names here.
+  const STAFF = ['Hà Khanh', 'Mỹ An'];
+
+  // Commission groups. The rates themselves live in the Google Sheet ("Hoa hồng - Rates" tab):
+  // Nails and lash extensions 10% after discount, waxing and heel scrub 15%, massage and head spa per session.
+  const COMM = {
+    nails: W('Nails', 'Nails'),
+    lash: W('Nối mi', 'Lash extensions'),
+    wax: W('Waxing', 'Waxing'),
+    heel: W('Chà gót', 'Heel scrub'),
+    massage: W('Massage (lượt)', 'Massage (per session)'),
+    headspa: W('Gội đầu (lượt)', 'Head spa (per session)'),
+    none: W('Không hoa hồng', 'No commission'),
+  };
+  // Which money source each payment method counts under in the daily totals.
+  const SOURCE = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', card: 'Cà thẻ', momo: 'Khác', zalopay: 'Khác', member: 'Khác' };
+  const LANG_KEY = 'seren-bill-lang';
 
   // ---------------------------------------------------------------------------
   // Wording
@@ -74,6 +96,19 @@
     memberCards: W('Thẻ thành viên', 'Member cards'),
     vatNote: W('Thanh toán bằng thẻ: cộng thêm 8% VAT.', 'Card payments: 8% VAT is added.'),
     qty: W('SL', 'Qty'),
+    staffShort: W('KTV', 'Staff'),
+    whoDid: W('Nhân viên làm', 'Done by'),
+    staffWarn: W('Chọn nhân viên cho từng dịch vụ trước khi xem hoá đơn.', 'Choose who did each service before viewing the receipt.'),
+    commGroup: W('Nhóm hoa hồng', 'Commission group'),
+    saveBill: W('Lưu hoá đơn', 'Save bill'),
+    saving: W('Đang lưu…', 'Saving…'),
+    saved: W('Đã lưu vào Google Sheet', 'Saved to Google Sheet'),
+    notSaved: W('Chưa lưu', 'Not saved yet'),
+    changed: W('Đã sửa sau khi lưu, vui lòng lưu lại', 'Changed since saving, please save again'),
+    queued: W('Không có mạng. Hoá đơn sẽ tự gửi lại khi có mạng.', 'No connection. The bill will be sent automatically when back online.'),
+    saveError: W('Không lưu được. Vui lòng thử lại.', 'Could not save. Please try again.'),
+    notConfigured: W('Chưa cài đặt nơi lưu hoá đơn.', 'Bill saving is not set up.'),
+    confirmUnsaved: W('Hoá đơn này CHƯA được lưu. Vẫn bắt đầu hoá đơn mới?', 'This bill has NOT been saved. Start a new bill anyway?'),
   };
 
   const PAYMENTS = [
@@ -108,6 +143,22 @@
   const digits = (v) => Number(String(v || '').replace(/\D/g, '')) || 0;
   const plainLabel = (l) => ({ vi: l.vi, en: l.en });
 
+  /** Commission group for a menu item (see COMM). */
+  function commissionGroup(serviceId, itemKey, optionId) {
+    if (serviceId === 'nails') return 'nails';
+    if (serviceId === 'waxing') return 'wax';
+    if (serviceId === 'massage') return 'massage';
+    if (serviceId === 'head_spa') return itemKey === 'addons' ? 'none' : 'headspa';
+    if (serviceId === 'brows_lashes') {
+      const ext = typeof EXT_IDS !== 'undefined' ? EXT_IDS : [];
+      return ext.includes(optionId) ? 'lash' : 'none';
+    }
+    return 'none';
+  }
+  const COMM_BY_KEY = {};
+  const commOf = (line) => line.comm || COMM_BY_KEY[line.key] || 'none';
+  const needsStaff = (line) => line.cat !== 'member';
+
   function buildMenu() {
     const menuServices = typeof SERVICES !== 'undefined' ? SERVICES : [];
     const cats = menuServices.map((s) => {
@@ -124,7 +175,9 @@
             group = { heading, options: [] };
             groups.push(group);
           }
-          group.options.push({ key: `${s.id}:${o.id}`, label: plainLabel(o.label), price: o.price, ...parsePrice(o.price) });
+          const key = `${s.id}:${o.id}`;
+          COMM_BY_KEY[key] = commissionGroup(s.id, item.key, o.id);
+          group.options.push({ key, label: plainLabel(o.label), price: o.price, ...parsePrice(o.price) });
         }
       }
       return { id: s.id, icon: s.icon, name: plainLabel(s.name), groups: groups.filter((g) => g.options.length) };
@@ -158,9 +211,15 @@
   let imageBlob = null;
 
   const blankBill = () => ({
-    created: null, customer: '', phone: '', staff: '',
+    uid: null, created: null, customer: '', phone: '',
     lines: [], discount: '', discountMode: 'vnd', pay: 'cash', received: '',
+    savedHash: null, savedAt: null,
   });
+  const newUid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  function startBill() {
+    if (!bill.lines.length) { bill.created = new Date().toISOString(); bill.uid = newUid(); }
+    if (!bill.uid) bill.uid = newUid();
+  }
   let bill = (() => {
     try { return { ...blankBill(), ...JSON.parse(storage.get(STORE_KEY) || '{}') }; } catch { return blankBill(); }
   })();
@@ -175,6 +234,8 @@
     return {
       no: `S${parts.year.slice(2)}${parts.month}${parts.day}-${parts.hour}${parts.minute}`,
       date: `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`,
+      iso: `${parts.year}-${parts.month}-${parts.day}`,
+      time: `${parts.hour}:${parts.minute}`,
     };
   }
 
@@ -195,15 +256,16 @@
 
   const isRange = (line) => line.lo !== line.hi;
   const unconfirmed = () => bill.lines.filter((l) => isRange(l) && !l.confirmed);
+  const missingStaff = () => bill.lines.filter((l) => needsStaff(l) && !l.staff);
 
   function addLine(option, cat) {
-    if (!bill.lines.length) bill.created = new Date().toISOString();
+    startBill();
     const existing = bill.lines.find((l) => l.key === option.key && !l.custom);
     if (existing) existing.qty += 1;
     else {
       bill.lines.push({
         key: option.key, cat: cat.id, icon: cat.icon, label: option.label,
-        lo: option.lo, hi: option.hi, price: option.lo, qty: 1, confirmed: option.lo === option.hi,
+        lo: option.lo, hi: option.hi, price: option.lo, qty: 1, confirmed: option.lo === option.hi, staff: '',
       });
     }
     save();
@@ -276,13 +338,12 @@
     const field = (key, label, attrs) => h('label', { class: 'field' },
       h('span', { class: 'label' }, txt(label)),
       h('input', { type: 'text', value: bill[key], oninput: (e) => { bill[key] = e.target.value; save(); }, ...attrs }));
-    const filled = ['customer', 'phone', 'staff'].some((k) => (bill[k] || '').trim());
+    const filled = ['customer', 'phone'].some((k) => (bill[k] || '').trim());
     return h('details', { class: 'cust', open: filled },
       h('summary', {}, txt(S.customer), h('span', { class: 'opt' }, ` (${txt(S.optional)})`)),
       h('div', { class: 'cust-grid' },
         field('customer', S.name, { autocomplete: 'off' }),
-        field('phone', S.phone, { type: 'tel', inputmode: 'tel', autocomplete: 'off' }),
-        field('staff', S.staff, { autocomplete: 'off' })));
+        field('phone', S.phone, { type: 'tel', inputmode: 'tel', autocomplete: 'off' })));
   }
 
   function renderMenu() {
@@ -317,6 +378,9 @@
   function customForm() {
     let name = '';
     let price = '';
+    let comm = 'none';
+    const commSelect = h('select', { class: 'comm-select', onchange: (e) => { comm = e.target.value; } },
+      Object.entries(COMM).map(([id, l]) => h('option', { value: id, selected: id === 'none' }, txt(l))));
     const nameInput = h('input', { type: 'text', autocomplete: 'off', oninput: (e) => { name = e.target.value; } });
     const priceInput = moneyInput('', (v) => { price = v; });
     const add = () => {
@@ -324,10 +388,10 @@
         (!name.trim() ? nameInput : priceInput).classList.add('invalid');
         return;
       }
-      if (!bill.lines.length) bill.created = new Date().toISOString();
+      startBill();
       const p = digits(price);
       bill.lines.push({ key: `custom:${Date.now()}`, cat: 'custom', icon: '＋', custom: true, label: { vi: name.trim(), en: name.trim() },
-        lo: p, hi: p, price: p, qty: 1, confirmed: true });
+        lo: p, hi: p, price: p, qty: 1, confirmed: true, comm, staff: '' });
       save();
       renderMenu();
       renderBill();
@@ -335,6 +399,7 @@
     return h('div', { class: 'custom-form' },
       h('label', { class: 'field' }, h('span', { class: 'label' }, txt(S.customName)), nameInput),
       h('label', { class: 'field' }, h('span', { class: 'label' }, txt(S.customPrice)), priceInput),
+      h('label', { class: 'field' }, h('span', { class: 'label' }, txt(S.commGroup)), commSelect),
       h('button', { type: 'button', class: 'secondary', onclick: add }, txt(S.addBtn)));
   }
 
@@ -369,10 +434,16 @@
       } else {
         priceNode = h('span', { class: 'unit' }, money(line.price));
       }
+      const staffPick = needsStaff(line) ? h('div', { class: `staff-pick${line.staff ? '' : ' needs-staff'}`, role: 'radiogroup', 'aria-label': txt(S.whoDid) },
+        h('span', { class: 'staff-label' }, `${txt(S.staffShort)}:`),
+        STAFF.map((name) => h('button', {
+          type: 'button', class: 'staff-chip', role: 'radio', 'aria-checked': String(line.staff === name),
+          onclick: () => { line.staff = line.staff === name ? '' : name; save(); renderBill(); },
+        }, name))) : null;
       return h('div', { class: 'line' },
         h('div', { class: 'line-main' },
           h('span', { class: 'line-icon', 'aria-hidden': 'true' }, line.icon || ''),
-          h('div', { class: 'line-name' }, lt(line.label), priceNode)),
+          h('div', { class: 'line-name' }, lt(line.label), priceNode, staffPick)),
         h('div', { class: 'line-side' },
           h('div', { class: 'stepper' },
             h('button', { type: 'button', 'aria-label': line.qty === 1 ? txt(S.remove) : '−', onclick: () => step(-1) }, line.qty === 1 ? '🗑' : '−'),
@@ -433,7 +504,7 @@
   }
 
   function newBill() {
-    if (bill.lines.length && !window.confirm(txt(S.confirmNew))) return;
+    if (bill.lines.length && !window.confirm(txt(isSaved() ? S.confirmNew : S.confirmUnsaved))) return;
     bill = blankBill();
     save();
     tab = CATS[0] ? CATS[0].id : 'custom';
@@ -443,11 +514,11 @@
 
   function viewReceipt() {
     const errors = document.getElementById('bill-errors');
-    const problem = !bill.lines.length ? S.nothing : unconfirmed().length ? S.rangeWarn : null;
+    const problem = !bill.lines.length ? S.nothing : unconfirmed().length ? S.rangeWarn : missingStaff().length ? S.staffWarn : null;
     if (problem) {
       errors.replaceChildren(h('div', { class: 'notice', role: 'alert' }, h('span', { class: 'i' }, '⚠️'), lt(problem)));
-      document.querySelectorAll('.needs-price').forEach((n) => n.classList.add('invalid'));
-      (document.querySelector('.needs-price') || errors).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.querySelectorAll('.needs-price, .needs-staff').forEach((n) => n.classList.add('invalid'));
+      (document.querySelector('.needs-price') || document.querySelector('.needs-staff') || errors).scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     renderReceipt();
@@ -456,6 +527,8 @@
   // ---------------------------------------------------------------------------
   // Receipt
   // ---------------------------------------------------------------------------
+
+  const staffNames = () => [...new Set(bill.lines.map((l) => l.staff).filter(Boolean))];
 
   /** Everything the receipt shows, used by both the on-screen receipt and the shared image. */
   function receiptData() {
@@ -467,7 +540,7 @@
       [S.date, st.date],
       bill.customer.trim() ? [S.customer, bill.customer.trim()] : null,
       bill.phone.trim() ? [S.phone, bill.phone.trim()] : null,
-      bill.staff.trim() ? [S.staff, bill.staff.trim()] : null,
+      staffNames().length ? [S.staff, staffNames().join(', ')] : null,
     ].filter(Boolean);
     const sums = [
       [S.subtotal, money(t.subtotal)],
@@ -514,9 +587,12 @@
         h('button', { type: 'button', class: 'link-button', onclick: () => { renderEdit(); window.scrollTo(0, 0); } }, `‹ ${txt(S.edit)}`)),
       receipt,
       h('div', { class: 'receipt-actions' },
-        h('button', { type: 'button', class: 'primary', onclick: printReceipt }, txt(S.print)),
+        h('div', { id: 'save-status', class: 'save-status', 'aria-live': 'polite' }),
+        h('button', { type: 'button', class: 'primary', id: 'save-btn', onclick: () => saveBill() }, txt(S.saveBill)),
+        h('button', { type: 'button', class: 'primary alt', onclick: printReceipt }, txt(S.print)),
         shareBtn,
         h('button', { type: 'button', class: 'link-button', onclick: newBill }, txt(S.newBill))));
+    renderSaveStatus();
     window.scrollTo(0, 0);
 
     // Prepare the image now so the share sheet opens straight from the tap (iPhone/iPad need that).
@@ -527,6 +603,138 @@
       if (btn) btn.disabled = false;
     }).catch((err) => console.error(err));
   }
+
+  // ---------------------------------------------------------------------------
+  // Saving to the Google Sheet
+  // ---------------------------------------------------------------------------
+
+  /** The bill as the Google Sheet stores it. The discount is shared across lines in proportion to their amount. */
+  function billPayload() {
+    const t = totals();
+    const st = stamp(bill.created);
+    const amounts = bill.lines.map((l) => l.price * l.qty);
+    const shares = amounts.map((a) => (t.subtotal ? Math.round((t.discount * a) / t.subtotal) : 0));
+    const drift = t.discount - shares.reduce((x, y) => x + y, 0);
+    if (drift && shares.length) {
+      const biggest = amounts.indexOf(Math.max(...amounts));
+      shares[biggest] += drift;
+    }
+    const pay = PAYMENTS.find((p) => p.id === bill.pay) || PAYMENTS[0];
+    const cat = (id) => (CATS.find((c) => c.id === id) || { name: S.custom }).name;
+    return {
+      type: 'bill',
+      website: '',
+      uid: bill.uid,
+      no: st.no,
+      date: st.iso,
+      time: st.time,
+      customer: (bill.customer || '').trim(),
+      phone: (bill.phone || '').trim(),
+      subtotal: t.subtotal,
+      discount: t.discount,
+      vat: t.vat,
+      total: t.total,
+      method: pay.id,
+      method_label: (pay.onReceipt || pay.label).vi,
+      source: SOURCE[pay.id] || 'Khác',
+      received: bill.pay === 'cash' ? t.received : 0,
+      change: bill.pay === 'cash' && t.received ? Math.max(0, t.change) : 0,
+      lines: bill.lines.map((l, i) => ({
+        name_vi: l.label.vi,
+        name_en: l.label.en,
+        category: cat(l.cat).vi,
+        staff: l.staff || '',
+        qty: l.qty,
+        price: l.price,
+        amount: amounts[i],
+        discount: shares[i],
+        net: amounts[i] - shares[i],
+        comm: commOf(l),
+      })),
+    };
+  }
+  const hashOf = (payload) => JSON.stringify({ ...payload, website: undefined });
+  const isSaved = () => !!bill.savedHash && bill.lines.length > 0 && bill.savedHash === hashOf(billPayload());
+
+  const queue = {
+    all() { try { return JSON.parse(storage.get(QUEUE_KEY) || '{}'); } catch { return {}; } },
+    put(payload) { const q = queue.all(); q[payload.uid] = payload; storage.set(QUEUE_KEY, JSON.stringify(q)); },
+    drop(uid) { const q = queue.all(); delete q[uid]; storage.set(QUEUE_KEY, JSON.stringify(q)); },
+  };
+
+  async function send(payload) {
+    const endpoint = (window.SEREN_CHECKIN || {}).endpoint;
+    if (!endpoint) throw new Error('not-configured');
+    // text/plain keeps this a "simple" request, which Google Apps Script accepts from any site.
+    const response = await fetch(endpoint, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow',
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  }
+
+  let saveState = 'idle'; // idle | saving | error | queued | not-configured
+  async function saveBill() {
+    if (!bill.lines.length || saveState === 'saving') return;
+    const payload = billPayload();
+    saveState = 'saving';
+    renderSaveStatus();
+    try {
+      await send(payload);
+      queue.drop(payload.uid);
+      bill.savedHash = hashOf(payload);
+      bill.savedAt = new Date().toISOString();
+      save();
+      saveState = 'idle';
+    } catch (err) {
+      console.error(err);
+      if (err.message === 'not-configured') saveState = 'not-configured';
+      else if (!navigator.onLine || err instanceof TypeError) {
+        // Network failure: keep it and send it again later. Saving twice is safe (same bill id).
+        queue.put(payload);
+        bill.savedHash = hashOf(payload);
+        save();
+        saveState = 'queued';
+      } else saveState = 'error';
+    }
+    renderSaveStatus();
+  }
+
+  function renderSaveStatus() {
+    const box = document.getElementById('save-status');
+    const btn = document.getElementById('save-btn');
+    if (!box) return;
+    const pending = bill.uid && queue.all()[bill.uid];
+    let cls = 'pending';
+    let msg = isSaved() ? null : (bill.savedHash ? S.changed : S.notSaved);
+    if (saveState === 'saving') msg = S.saving;
+    else if (saveState === 'error') { msg = S.saveError; cls = 'bad'; }
+    else if (saveState === 'not-configured') { msg = S.notConfigured; cls = 'bad'; }
+    else if (pending) { msg = S.queued; cls = 'bad'; }
+    else if (isSaved()) { msg = S.saved; cls = 'ok'; }
+    const at = isSaved() && !pending && bill.savedAt ? ` · ${stamp(bill.savedAt).time}` : '';
+    box.className = `save-status ${cls}`;
+    box.replaceChildren(h('span', { 'aria-hidden': 'true' }, cls === 'ok' ? '✓ ' : cls === 'bad' ? '⚠️ ' : '• '), txt(msg), at);
+    if (btn) {
+      btn.disabled = saveState === 'saving' || (isSaved() && !pending);
+      btn.hidden = isSaved() && !pending;
+    }
+  }
+
+  /** Sends bills that could not be sent earlier (no internet at the time). */
+  async function flushQueue() {
+    for (const payload of Object.values(queue.all())) {
+      try {
+        await send(payload);
+        queue.drop(payload.uid);
+      } catch (err) {
+        console.error(err);
+        if (err.message === 'not-configured') return;
+      }
+    }
+    renderSaveStatus();
+  }
+  window.addEventListener('online', flushQueue);
 
   // ---------------------------------------------------------------------------
   // Printing on the 58 mm receipt printer
@@ -545,6 +753,7 @@
     style.textContent = `@page { size: ${PAPER_MM}mm ${lengthMm}mm; margin: 0; }`;
   }
   function printReceipt() {
+    if (!isSaved()) saveBill(); // printing a receipt also records the sale
     sizePageForPrint();
     window.print();
   }
@@ -700,5 +909,7 @@
     if (screen === 'receipt') renderReceipt(); else renderEdit();
   });
   document.documentElement.lang = lang === 'en' ? 'en' : 'vi';
+  if (bill.lines.length && !bill.uid) { bill.uid = newUid(); save(); } // bills started before saving existed
   renderEdit();
+  flushQueue();
 })();
