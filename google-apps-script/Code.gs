@@ -1,5 +1,5 @@
 /**
- * Seren check-in receiver.
+ * Seren check-in and bill receiver.
  *
  * Paste this into Extensions › Apps Script of the private "Seren Check-ins" Google Sheet, then
  * Deploy › Manage deployments › Edit › Version: New version › Deploy (the web app URL stays the same).
@@ -56,6 +56,7 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     if (data.website) return json({ ok: true }); // honeypot filled in: a bot
+    if (data.type === 'bill') return json(saveBill(data)); // from the bill page (see "Bills" below)
 
     const submitted = new Date();
     const signatureUrl = saveSignature(data.signature, data.full_name, submitted);
@@ -314,4 +315,386 @@ function notify(data, signatureUrl) {
 
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ===========================================================================
+// Bills (from checkin.serensaigon.com/bill/)
+//
+// Every saved bill becomes one row in "Hoá đơn - Bills" and one row per service in "Chi tiết DV - Lines".
+// Saving the same bill again (same bill id) replaces its rows, so nothing is counted twice.
+// After each save the two summary tabs are rebuilt:
+//   "Tổng kết - Daily"   revenue per day and per month, split by money source.
+//   "Nhân viên - Staff"  revenue and commission per staff member, per month and per day.
+// Commission rates are read from "Hoa hồng - Rates"; change them there, then SEREN menu › Tính lại / Recalculate.
+// Download everything as Excel with File › Download › Microsoft Excel (.xlsx).
+// ===========================================================================
+
+const BILL_TABS = {
+  bills: 'Hoá đơn - Bills',
+  lines: 'Chi tiết DV - Lines',
+  daily: 'Tổng kết - Daily',
+  staff: 'Nhân viên - Staff',
+  rates: 'Hoa hồng - Rates',
+};
+
+const SOURCES = ['Tiền mặt', 'Chuyển khoản', 'Cà thẻ', 'Khác'];
+const SOURCE_EN = { 'Tiền mặt': 'Cash', 'Chuyển khoản': 'Transfer', 'Cà thẻ': 'Card', 'Khác': 'Other' };
+const METHOD_SOURCE = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', card: 'Cà thẻ', momo: 'Khác', zalopay: 'Khác', member: 'Khác' };
+
+// Commission groups sent by the bill page, and how each is paid.
+const COMM_GROUPS = {
+  nails: { name: 'Nails', kind: 'pct', rate: 0.10 },
+  lash: { name: 'Nối mi', kind: 'pct', rate: 0.10 },
+  wax: { name: 'Waxing', kind: 'pct', rate: 0.15 },
+  heel: { name: 'Chà gót', kind: 'pct', rate: 0.15 },
+  massage: { name: 'Massage', kind: 'turn', rate: '' },
+  headspa: { name: 'Gội đầu', kind: 'turn', rate: '' },
+  none: { name: 'Không HH', kind: 'none', rate: '' },
+};
+
+const BILL_COLUMNS = [
+  { title: 'Mã / ID', width: 60 },
+  { title: 'Số HĐ / No.', width: 115 },
+  { title: 'Ngày / Date', width: 95 },
+  { title: 'Giờ / Time', width: 60 },
+  { title: 'Khách / Customer', width: 150 },
+  { title: 'SĐT / Phone', width: 110 },
+  { title: 'Dịch vụ / Services', width: 300 },
+  { title: 'Nhân viên / Staff', width: 140 },
+  { title: 'Tạm tính / Subtotal', width: 105 },
+  { title: 'Giảm giá / Discount', width: 95 },
+  { title: 'VAT', width: 80 },
+  { title: 'Tổng thu / Total paid', width: 115 },
+  { title: 'Thanh toán / Method', width: 120 },
+  { title: 'Nguồn tiền / Source', width: 115 },
+  { title: 'Khách đưa / Received', width: 110 },
+  { title: 'Tiền thừa / Change', width: 100 },
+  { title: 'Lưu lúc / Saved', width: 140 },
+];
+const LINE_COLUMNS = [
+  { title: 'Mã HĐ / Bill ID', width: 60 },
+  { title: 'Số HĐ / No.', width: 115 },
+  { title: 'Ngày / Date', width: 95 },
+  { title: 'Nhân viên / Staff', width: 120 },
+  { title: 'Loại / Category', width: 120 },
+  { title: 'Dịch vụ / Service', width: 280 },
+  { title: 'SL / Qty', width: 55 },
+  { title: 'Đơn giá / Price', width: 95 },
+  { title: 'Thành tiền / Amount', width: 105 },
+  { title: 'Giảm giá / Discount', width: 95 },
+  { title: 'Sau giảm / Net', width: 100 },
+  { title: 'Nhóm HH / Commission group', width: 160 },
+  { title: 'Lượt / Sessions', width: 75 },
+  { title: 'Nguồn tiền / Source', width: 115 },
+];
+const BILL_MONEY_COLS = [9, 10, 11, 12, 15, 16];
+const LINE_MONEY_COLS = [8, 9, 10, 11];
+
+/** Adds the SEREN menu to the Google Sheet. */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('SEREN')
+    .addItem('Tính lại tổng kết / Recalculate totals', 'rebuildBillSummaries')
+    .addToUi();
+}
+
+/** Called from doPost for { type: 'bill' }. */
+function saveBill(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const uid = String(data.uid || '').replace(/[^\w-]/g, '').slice(0, 64);
+  const lines = Array.isArray(data.lines) ? data.lines.slice(0, 200) : [];
+  if (!uid || !lines.length) throw new Error('Bill has no id or no services');
+  const date = parseIsoDate(data.date);
+  if (!date) throw new Error('Bill has no date');
+
+  // First bill: create the tabs in reading order (totals first), after the existing check-in tabs.
+  [BILL_TABS.daily, BILL_TABS.staff].forEach((n) => { if (!ss.getSheetByName(n)) ss.insertSheet(n); });
+  const billsSheet = billTab(ss, BILL_TABS.bills, BILL_COLUMNS, BILL_MONEY_COLS);
+  const linesSheet = billTab(ss, BILL_TABS.lines, LINE_COLUMNS, LINE_MONEY_COLS);
+  ratesTab(ss);
+  removeBillRows(billsSheet, uid);
+  removeBillRows(linesSheet, uid);
+
+  const source = METHOD_SOURCE[data.method] || (SOURCES.includes(data.source) ? data.source : 'Khác');
+  const money = (v) => Math.max(0, Math.round(Number(v) || 0));
+  const staff = [...new Set(lines.map((l) => cleanText(l.staff, 60)).filter(Boolean))].join(', ');
+  const services = lines.map((l) => {
+    const qty = Math.max(1, Math.round(Number(l.qty) || 1));
+    return `${cleanText(l.name_vi, 120)}${qty > 1 ? ` ×${qty}` : ''}`;
+  }).join(', ');
+
+  const billRow = [
+    uid, plain(cleanText(data.no, 20)), date, plain(cleanText(data.time, 5)),
+    plain(cleanText(data.customer, 80)), plain(cleanText(data.phone, 30)),
+    plain(services, 2000), plain(staff),
+    money(data.subtotal), money(data.discount), money(data.vat), money(data.total),
+    plain(cleanText(data.method_label, 40)), source,
+    money(data.received) || '', money(data.change) || '', new Date(),
+  ];
+  billsSheet.insertRowsAfter(1, 1);
+  billsSheet.getRange(2, 1, 1, billRow.length).setValues([billRow]);
+  styleBillRows(billsSheet, 2, 1, BILL_COLUMNS, BILL_MONEY_COLS);
+
+  const lineRows = lines.map((l) => {
+    const qty = Math.max(1, Math.round(Number(l.qty) || 1));
+    const group = COMM_GROUPS[l.comm] ? l.comm : 'none';
+    return [
+      uid, plain(cleanText(data.no, 20)), date, plain(cleanText(l.staff, 60)),
+      plain(cleanText(l.category, 40)), plain(cleanText(l.name_vi, 200)),
+      qty, money(l.price), money(l.amount), money(l.discount), money(l.net),
+      COMM_GROUPS[group].name, COMM_GROUPS[group].kind === 'turn' ? qty : 0, source,
+    ];
+  });
+  linesSheet.insertRowsAfter(1, lineRows.length);
+  linesSheet.getRange(2, 1, lineRows.length, LINE_COLUMNS.length).setValues(lineRows);
+  styleBillRows(linesSheet, 2, lineRows.length, LINE_COLUMNS, LINE_MONEY_COLS);
+
+  rebuildBillSummaries();
+  return { ok: true };
+}
+
+/** "2026-10-06" → a date at noon (noon keeps the same calendar day in any time zone setting). */
+function parseIsoDate(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12) : null;
+}
+
+function cleanText(value, max) {
+  return String(value == null ? '' : value).replace(/[\r\n\t]+/g, ' ').trim().slice(0, max || 200);
+}
+
+function removeBillRows(sheet, uid) {
+  const last = sheet.getLastRow();
+  if (last < 2) return;
+  const ids = sheet.getRange(2, 1, last - 1, 1).getValues();
+  for (let i = ids.length - 1; i >= 0; i -= 1) {
+    if (String(ids[i][0]) === uid) sheet.deleteRow(i + 2);
+  }
+}
+
+/** New rows take the heading's dark style when inserted under it, so set plain formatting explicitly. */
+function styleBillRows(sheet, first, count, columns, moneyCols) {
+  sheet.getRange(first, 1, count, columns.length)
+    .setFontWeight('normal').setBackground('#FFFFFF').setFontColor('#1E2B22').setVerticalAlignment('middle')
+    .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange(first, 3, count, 1).setNumberFormat('dd/MM/yyyy');
+  moneyCols.forEach((col) => sheet.getRange(first, col, count, 1).setNumberFormat('#,##0'));
+  if (columns === BILL_COLUMNS) {
+    sheet.getRange(first, 12, count, 1).setFontWeight('bold');
+    sheet.getRange(first, columns.length, count, 1).setNumberFormat('dd/MM/yyyy HH:mm');
+  }
+}
+
+/** Finds or creates a data tab with headings, widths and number formats. */
+function billTab(ss, name, columns, moneyCols) {
+  let sheet = ss.getSheetByName(name);
+  if (sheet) return sheet;
+  sheet = ss.insertSheet(name);
+  const titles = columns.map((c) => c.title);
+  if (sheet.getMaxColumns() < titles.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), titles.length - sheet.getMaxColumns());
+  sheet.getRange(1, 1, 1, titles.length).setValues([titles])
+    .setFontWeight('bold').setBackground('#1E2B22').setFontColor('#FBF8F3').setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 32);
+  sheet.setFrozenRows(1);
+  columns.forEach((c, i) => sheet.setColumnWidth(i + 1, c.width));
+  const rows = sheet.getMaxRows() - 1;
+  sheet.getRange(2, 3, rows, 1).setNumberFormat('dd/MM/yyyy');
+  moneyCols.forEach((col) => sheet.getRange(2, col, rows, 1).setNumberFormat('#,##0'));
+  if (name === BILL_TABS.bills) sheet.getRange(2, columns.length, rows, 1).setNumberFormat('dd/MM/yyyy HH:mm');
+  sheet.hideColumns(1);
+  sheet.getRange(1, 1, sheet.getMaxRows(), titles.length).createFilter(); // filter by staff, date, source…
+  return sheet;
+}
+
+/** Commission rates, editable by the owner. Created once with the agreed defaults. */
+function ratesTab(ss) {
+  let sheet = ss.getSheetByName(BILL_TABS.rates);
+  if (sheet) return sheet;
+  sheet = ss.insertSheet(BILL_TABS.rates);
+  const rows = [
+    ['Nhóm / Group', 'Cách tính / How', 'Mức / Rate', 'Ghi chú / Note'],
+    ['Nails', '% sau giảm giá / % after discount', 0.10, 'Tất cả dịch vụ nail / All nail services'],
+    ['Nối mi', '% sau giảm giá / % after discount', 0.10, 'Nối mi, nâng cấp sợi, mi dưới, tháo mi / Lash extensions'],
+    ['Waxing', '% sau giảm giá / % after discount', 0.15, 'Tất cả waxing / All waxing'],
+    ['Chà gót', '% sau giảm giá / % after discount', 0.15, 'Thêm bằng mục "Khác" / Add with "Other"'],
+    ['Massage', '₫ mỗi lượt / ₫ per session', '', 'Điền số tiền mỗi lượt / Fill in the amount per session'],
+    ['Gội đầu', '₫ mỗi lượt / ₫ per session', '', 'Liệu trình gội đầu (không tính dịch vụ thêm) / Head spa rituals, not add-ons'],
+  ];
+  sheet.getRange(1, 1, rows.length, 4).setValues(rows);
+  sheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#1E2B22').setFontColor('#FBF8F3');
+  sheet.getRange(2, 3, 4, 1).setNumberFormat('0%');
+  sheet.getRange(6, 3, 2, 1).setNumberFormat('#,##0');
+  sheet.getRange(2, 3, 6, 1).setBackground('#FFF7E0').setFontWeight('bold');
+  sheet.setColumnWidths(1, 1, 110);
+  sheet.setColumnWidth(2, 230);
+  sheet.setColumnWidth(3, 90);
+  sheet.setColumnWidth(4, 420);
+  sheet.getRange(9, 1).setValue('Sau khi sửa mức hoa hồng: menu SEREN › Tính lại tổng kết. / After changing a rate: SEREN menu › Recalculate totals.')
+    .setFontStyle('italic');
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+/** { 'Nails': {kind, rate}, … } from the Rates tab. */
+function readRates(ss) {
+  const sheet = ratesTab(ss);
+  const values = sheet.getRange(2, 1, Math.max(1, sheet.getLastRow() - 1), 3).getValues();
+  const rates = {};
+  Object.values(COMM_GROUPS).forEach((g) => { rates[g.name] = { kind: g.kind, rate: 0 }; });
+  values.forEach(([name, how, rate]) => {
+    if (!name || !rates[name]) return;
+    rates[name].rate = Number(rate) || 0;
+  });
+  return rates;
+}
+
+/** Rebuilds the Daily and Staff tabs from the bill rows. Also on the SEREN menu. */
+function rebuildBillSummaries() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tz = ss.getSpreadsheetTimeZone();
+  const billsSheet = billTab(ss, BILL_TABS.bills, BILL_COLUMNS, BILL_MONEY_COLS);
+  const linesSheet = billTab(ss, BILL_TABS.lines, LINE_COLUMNS, LINE_MONEY_COLS);
+  const read = (sheet, width) => (sheet.getLastRow() < 2 ? [] : sheet.getRange(2, 1, sheet.getLastRow() - 1, width).getValues());
+  const day = (d) => (d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d || ''));
+
+  const bills = read(billsSheet, BILL_COLUMNS.length).filter((r) => r[0]).map((r) => ({
+    day: day(r[2]), discount: Number(r[9]) || 0, vat: Number(r[10]) || 0, total: Number(r[11]) || 0, source: String(r[13] || 'Khác'),
+  }));
+  const lines = read(linesSheet, LINE_COLUMNS.length).filter((r) => r[0]).map((r) => ({
+    day: day(r[2]), staff: String(r[3] || '').trim(), net: Number(r[10]) || 0, group: String(r[11] || 'Không HH'), turns: Number(r[12]) || 0,
+  }));
+  const s = computeBillSummaries(bills, lines, readRates(ss));
+  writeSummary(ss, BILL_TABS.daily, s.dailyBlocks);
+  writeSummary(ss, BILL_TABS.staff, s.staffBlocks);
+}
+
+/**
+ * Pure calculation (no spreadsheet access), so it can be tested on its own.
+ * bills: [{day:'yyyy-MM-dd', discount, vat, total, source}]; lines: [{day, staff, net, group, turns}];
+ * rates: {'Nails': {kind:'pct', rate:0.1}, 'Massage': {kind:'turn', rate:50000}, …}.
+ * Returns blocks of rows for the two summary tabs: [{title, header, rows, money:[col indexes], date:[col indexes]}].
+ */
+function computeBillSummaries(bills, lines, rates) {
+  const by = (list, keyFn) => {
+    const map = new Map();
+    list.forEach((item) => {
+      const k = keyFn(item);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(item);
+    });
+    return map;
+  };
+  const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
+  const month = (d) => d.slice(0, 7);
+
+  const sourceRows = (groups, labelFn) => [...groups.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([k, list]) => {
+      const bySource = SOURCES.map((src) => sum(list.filter((b) => b.source === src), (b) => b.total));
+      const total = sum(list, (b) => b.total);
+      const vat = sum(list, (b) => b.vat);
+      return [labelFn(k), list.length, ...bySource, total, vat, total - vat, sum(list, (b) => b.discount)];
+    });
+  const sourceHeader = ['Số HĐ / Bills', ...SOURCES.map((s) => `${s} / ${SOURCE_EN[s]}`),
+    'Tổng thu / Total paid', 'Trong đó VAT / of which VAT', 'Doanh thu (không VAT) / Revenue excl. VAT', 'Giảm giá / Discounts'];
+  const sourceMoney = [2, 3, 4, 5, 6, 7, 8, 9];
+
+  const dailyBlocks = [
+    {
+      title: 'Theo tháng / By month',
+      header: ['Tháng / Month', ...sourceHeader],
+      rows: sourceRows(by(bills, (b) => month(b.day)), (k) => k),
+      money: sourceMoney, date: [],
+    },
+    {
+      title: 'Theo ngày / By day',
+      header: ['Ngày / Date', ...sourceHeader],
+      rows: sourceRows(by(bills, (b) => b.day), (k) => isoToDate(k)),
+      money: sourceMoney, date: [0],
+    },
+  ];
+
+  const rate = (name) => (rates[name] ? rates[name].rate : 0);
+  const staffRow = (list) => {
+    const netOf = (names) => sum(list.filter((l) => names.includes(l.group)), (l) => l.net);
+    const turnsOf = (name) => sum(list.filter((l) => l.group === name), (l) => l.turns);
+    const nailsLash = netOf(['Nails', 'Nối mi']);
+    const waxHeel = netOf(['Waxing', 'Chà gót']);
+    const pct10 = netOf(['Nails']) * rate('Nails') + netOf(['Nối mi']) * rate('Nối mi');
+    const pct15 = netOf(['Waxing']) * rate('Waxing') + netOf(['Chà gót']) * rate('Chà gót');
+    const massage = turnsOf('Massage');
+    const headspa = turnsOf('Gội đầu');
+    const turnPay = massage * rate('Massage') + headspa * rate('Gội đầu');
+    return [sum(list, (l) => l.net), nailsLash, Math.round(pct10), waxHeel, Math.round(pct15), massage, headspa,
+      Math.round(turnPay), Math.round(pct10 + pct15 + turnPay)];
+  };
+  const staffHeader = ['Nhân viên / Staff', 'Doanh thu DV (sau giảm) / Service revenue', 'Nails + Nối mi', 'HH Nails + Nối mi / Commission',
+    'Waxing + Chà gót', 'HH Waxing + Chà gót / Commission', 'Lượt massage / Massage sessions', 'Lượt gội đầu / Head spa sessions',
+    'Tiền lượt / Session pay', 'Tổng hoa hồng / Total commission'];
+  const staffName = (l) => l.staff || '(chưa chọn / not set)';
+  const staffRows = (periodFn, labelFn) => {
+    const rows = [];
+    [...by(lines, (l) => periodFn(l.day)).entries()]
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .forEach(([period, list]) => {
+        [...by(list, staffName).entries()].sort((a, b) => a[0].localeCompare(b[0]))
+          .forEach(([name, items]) => rows.push([labelFn(period), name, ...staffRow(items)]));
+      });
+    return rows;
+  };
+  const staffMoney = [2, 3, 4, 5, 6, 9, 10];
+  const staffBlocks = [
+    {
+      title: 'Theo tháng / By month',
+      header: ['Tháng / Month', ...staffHeader],
+      rows: staffRows(month, (k) => k),
+      money: staffMoney, date: [],
+    },
+    {
+      title: 'Theo ngày / By day',
+      header: ['Ngày / Date', ...staffHeader],
+      rows: staffRows((d) => d, (k) => isoToDate(k)),
+      money: staffMoney, date: [0],
+    },
+  ];
+  return { dailyBlocks, staffBlocks };
+}
+
+function isoToDate(iso) {
+  return parseIsoDate(iso) || iso;
+}
+
+/** Clears a summary tab and writes the blocks one under another. */
+function writeSummary(ss, name, blocks) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) sheet = ss.insertSheet(name);
+  sheet.clear();
+  const width = Math.max(...blocks.map((b) => b.header.length));
+  if (sheet.getMaxColumns() < width) sheet.insertColumnsAfter(sheet.getMaxColumns(), width - sheet.getMaxColumns());
+  const needed = blocks.reduce((n, b) => n + b.rows.length + 4, 2);
+  if (sheet.getMaxRows() < needed) sheet.insertRowsAfter(sheet.getMaxRows(), needed - sheet.getMaxRows());
+
+  sheet.getRange(1, 1).setValue(`Cập nhật / Updated: ${Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'dd/MM/yyyy HH:mm')}`)
+    .setFontStyle('italic').setFontColor('#7D7169');
+  let row = 3;
+  blocks.forEach((b) => {
+    sheet.getRange(row, 1).setValue(b.title).setFontWeight('bold').setFontSize(13);
+    row += 1;
+    sheet.getRange(row, 1, 1, b.header.length).setValues([b.header])
+      .setFontWeight('bold').setBackground('#1E2B22').setFontColor('#FBF8F3').setWrap(true).setVerticalAlignment('middle');
+    sheet.setRowHeight(row, 44);
+    row += 1;
+    if (b.rows.length) {
+      sheet.getRange(row, 1, b.rows.length, b.header.length).setValues(b.rows);
+      b.money.forEach((c) => sheet.getRange(row, c + 1, b.rows.length, 1).setNumberFormat('#,##0'));
+      b.date.forEach((c) => sheet.getRange(row, c + 1, b.rows.length, 1).setNumberFormat('dd/MM/yyyy'));
+      row += b.rows.length;
+    } else {
+      sheet.getRange(row, 1).setValue('Chưa có hoá đơn / No bills yet').setFontColor('#7D7169');
+      row += 1;
+    }
+    row += 2;
+  });
+  sheet.setColumnWidth(1, 105);
+  for (let c = 2; c <= width; c += 1) sheet.setColumnWidth(c, 120);
+  sheet.setFrozenColumns(name === BILL_TABS.staff ? 2 : 1);
 }
