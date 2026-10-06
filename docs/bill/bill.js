@@ -14,6 +14,9 @@
     contact: '+84 879 303 993 · serensaigon.com',
   };
   const VAT_RATE = 0.08;
+  // Receipt printer: Xprinter XP-58IIT (58 mm thermal paper). Change PAPER_MM to 80 for an 80 mm printer
+  // (and the 48mm width in bill.css to 72mm).
+  const PAPER_MM = 58;
   /** Payment methods that always add VAT on top of the bill. */
   const VAT_PAYMENTS = ['card'];
   const TZ = 'Asia/Ho_Chi_Minh';
@@ -511,7 +514,7 @@
         h('button', { type: 'button', class: 'link-button', onclick: () => { renderEdit(); window.scrollTo(0, 0); } }, `‹ ${txt(S.edit)}`)),
       receipt,
       h('div', { class: 'receipt-actions' },
-        h('button', { type: 'button', class: 'primary', onclick: () => window.print() }, txt(S.print)),
+        h('button', { type: 'button', class: 'primary', onclick: printReceipt }, txt(S.print)),
         shareBtn,
         h('button', { type: 'button', class: 'link-button', onclick: newBill }, txt(S.newBill))));
     window.scrollTo(0, 0);
@@ -524,6 +527,30 @@
       if (btn) btn.disabled = false;
     }).catch((err) => console.error(err));
   }
+
+  // ---------------------------------------------------------------------------
+  // Printing on the 58 mm receipt printer
+  // ---------------------------------------------------------------------------
+
+  /** Switches the receipt to print size and makes the page exactly as long as the receipt (no blank paper). */
+  function sizePageForPrint() {
+    document.body.classList.add('printing');
+    const receipt = document.getElementById('receipt');
+    const lengthMm = receipt ? Math.ceil((receipt.getBoundingClientRect().height * 25.4) / 96) + 4 : 200;
+    let style = document.getElementById('page-size');
+    if (!style) {
+      style = h('style', { id: 'page-size' });
+      document.head.append(style);
+    }
+    style.textContent = `@page { size: ${PAPER_MM}mm ${lengthMm}mm; margin: 0; }`;
+  }
+  function printReceipt() {
+    sizePageForPrint();
+    window.print();
+  }
+  // Ctrl+P works too.
+  window.addEventListener('beforeprint', sizePageForPrint);
+  window.addEventListener('afterprint', () => document.body.classList.remove('printing'));
 
   function fileName() {
     return `Seren-${stamp(bill.created).no}.png`;

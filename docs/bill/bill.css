@@ -154,17 +154,35 @@ main { padding-bottom: 96px; }
   .receipt-bar, .receipt-actions { max-width: 420px; margin-left: auto; margin-right: auto; }
 }
 
+/* Receipt printer: Xprinter XP-58IIT thermal, 58 mm paper with a 48 mm printable strip.
+   bill.js adds body.printing just before printing, so the receipt can be measured at print size
+   and the page cut to the receipt's length. */
+body.printing .receipt {
+  width: 48mm; max-width: none; margin: 0 auto; padding: 1mm 0 6mm;
+  box-shadow: none; border-radius: 0; background: #fff;
+  font-family: Arial, "Segoe UI", Roboto, sans-serif; font-size: 11px; line-height: 1.35; font-weight: 500;
+}
+/* Thermal printers print grey faintly, so everything is solid black. */
+body.printing .receipt, body.printing .receipt * { color: #000 !important; }
+body.printing .r-brand { font-size: 18px; letter-spacing: .1em; }
+body.printing .r-sub { font-size: 10px; }
+body.printing .r-addr { font-size: 9.5px; }
+body.printing .r-title { margin: 6px 0 5px; padding-top: 6px; border-top: 1px solid #000; letter-spacing: .03em; font-size: 12px; }
+body.printing .r-row { flex-wrap: wrap; gap: 0 6px; padding: 1px 0; }
+body.printing .r-row span:last-child { margin-left: auto; }
+body.printing .r-items { margin: 6px 0; padding: 6px 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; }
+body.printing .r-item { gap: 6px; }
+body.printing .r-item + .r-item { margin-top: 5px; }
+body.printing .r-item-name, body.printing .r-amt { font-weight: 700; }
+body.printing .r-item-name .en, body.printing .r-item-calc { font-weight: 500; }
+body.printing .r-total { flex-wrap: wrap; gap: 0 6px; font-size: 12.5px; margin: 4px 0 6px; padding: 4px 0; border-bottom: 1px dashed #000; }
+body.printing .r-total span:last-child { margin-left: auto; }
+body.printing .r-foot { margin-top: 8px; padding-top: 6px; border-top: 1px solid #000; font-size: 11px; }
+
 @media print {
-  @page { margin: 6mm; }
-  body { background: #fff; padding: 0; }
+  @page { margin: 0; }
+  html, body { background: #fff; margin: 0; padding: 0; }
   .topbar, .receipt-bar, .receipt-actions, .sticky-total { display: none !important; }
-  main { padding: 0; max-width: none; }
-  .receipt { box-shadow: none; max-width: 76mm; padding: 0; margin: 0 auto; font-size: 12px; }
-  .r-brand { font-size: 20px; }
-  .r-total { font-size: 16px; }
+  main { padding: 0; margin: 0; max-width: none; }
   .r-items, .r-total, .r-title, .r-foot { break-inside: avoid; }
-  /* Receipt printers print grey faintly, so print everything in solid black. */
-  .receipt, .receipt * { color: #000 !important; }
-  .r-title, .r-foot { border-top-color: #000; }
-  .r-items, .r-total { border-color: #000; }
 }
