@@ -31,6 +31,8 @@
 
   // Staff who do services. Add or remove names here.
   const STAFF = ['Hà Khanh', 'Mỹ An'];
+  // Outside workers' names typed on this device, offered again next time (newest first).
+  const OUTSIDE_KEY = 'seren-bill-outside-staff';
 
   // Commission groups. The rates themselves live in the Google Sheet ("Hoa hồng - Rates" tab):
   // Nails and lash extensions 10% after discount, waxing and heel scrub 15%, massage and head spa per session.
@@ -99,6 +101,8 @@
     staffShort: W('KTV', 'Staff'),
     whoDid: W('Nhân viên làm', 'Done by'),
     staffWarn: W('Chọn nhân viên cho từng dịch vụ trước khi xem hoá đơn.', 'Choose who did each service before viewing the receipt.'),
+    outside: W('+ Thợ ngoài', '+ Outside'),
+    outsideName: W('Tên thợ ngoài', 'Outside worker name'),
     commGroup: W('Nhóm hoa hồng', 'Commission group'),
     saveBill: W('Lưu hoá đơn', 'Save bill'),
     saving: W('Đang lưu…', 'Saving…'),
@@ -256,7 +260,14 @@
 
   const isRange = (line) => line.lo !== line.hi;
   const unconfirmed = () => bill.lines.filter((l) => isRange(l) && !l.confirmed);
-  const missingStaff = () => bill.lines.filter((l) => needsStaff(l) && !l.staff);
+  const missingStaff = () => bill.lines.filter((l) => needsStaff(l) && !(l.staff || '').trim());
+  const isOutside = (line) => !!line.outside || (!!line.staff && !STAFF.includes(line.staff));
+  const outsideNames = () => { try { return JSON.parse(storage.get(OUTSIDE_KEY) || '[]'); } catch { return []; } };
+  function rememberOutside(name) {
+    const n = (name || '').trim();
+    if (!n || STAFF.includes(n)) return;
+    storage.set(OUTSIDE_KEY, JSON.stringify([n, ...outsideNames().filter((x) => x !== n)].slice(0, 15)));
+  }
 
   function addLine(option, cat) {
     startBill();
@@ -434,12 +445,40 @@
       } else {
         priceNode = h('span', { class: 'unit' }, money(line.price));
       }
-      const staffPick = needsStaff(line) ? h('div', { class: `staff-pick${line.staff ? '' : ' needs-staff'}`, role: 'radiogroup', 'aria-label': txt(S.whoDid) },
-        h('span', { class: 'staff-label' }, `${txt(S.staffShort)}:`),
-        STAFF.map((name) => h('button', {
-          type: 'button', class: 'staff-chip', role: 'radio', 'aria-checked': String(line.staff === name),
-          onclick: () => { line.staff = line.staff === name ? '' : name; save(); renderBill(); },
-        }, name))) : null;
+      let staffPick = null;
+      if (needsStaff(line)) {
+        const outside = isOutside(line);
+        staffPick = h('div', { class: `staff-pick${(line.staff || '').trim() ? '' : ' needs-staff'}`, role: 'radiogroup', 'aria-label': txt(S.whoDid) },
+          h('span', { class: 'staff-label' }, `${txt(S.staffShort)}:`),
+          STAFF.map((name) => h('button', {
+            type: 'button', class: 'staff-chip', role: 'radio', 'aria-checked': String(!outside && line.staff === name),
+            onclick: () => { line.outside = false; line.staff = line.staff === name ? '' : name; save(); renderBill(); },
+          }, name)),
+          h('button', {
+            type: 'button', class: 'staff-chip outside', role: 'radio', 'aria-checked': String(outside),
+            onclick: () => {
+              line.outside = !outside;
+              line.staff = line.outside ? (outsideNames()[0] || '') : '';
+              save(); renderBill();
+              if (line.outside) setTimeout(() => { const el = document.getElementById(`outside-${i}`); if (el) { el.focus(); el.select(); } }, 0);
+            },
+          }, lang === 'en' ? S.outside.en : S.outside.vi));
+        if (outside) {
+          // Free-text name for someone who isn't on the staff list; names used before are suggested.
+          const pick = staffPick;
+          staffPick.append(h('input', {
+            type: 'text', id: `outside-${i}`, class: 'outside-name', list: 'outside-staff-list', autocomplete: 'off',
+            placeholder: txt(S.outsideName), 'aria-label': txt(S.outsideName), value: line.staff || '',
+            oninput: (e) => {
+              line.staff = e.target.value.replace(/\s+/g, ' ').trimStart().slice(0, 60);
+              pick.classList.toggle('needs-staff', !line.staff.trim());
+              if (line.staff.trim()) pick.classList.remove('invalid');
+              save(); renderTotals();
+            },
+            onchange: (e) => { line.staff = e.target.value.trim(); rememberOutside(line.staff); save(); },
+          }));
+        }
+      }
       return h('div', { class: 'line' },
         h('div', { class: 'line-main' },
           h('span', { class: 'line-icon', 'aria-hidden': 'true' }, line.icon || ''),
@@ -473,7 +512,8 @@
       h('span', { class: 'label' }, txt(S.received), h('span', { class: 'opt' }, ` (${txt(S.optional)})`)),
       moneyInput(bill.received, (v) => { bill.received = v; save(); renderTotals(); })) : null;
 
-    box.replaceChildren(...[lines, h('hr', { class: 'divider' }), customerFields(), discountRow, payRow, receivedRow,
+    const outsideList = h('datalist', { id: 'outside-staff-list' }, outsideNames().map((n) => h('option', { value: n })));
+    box.replaceChildren(...[lines, outsideList, h('hr', { class: 'divider' }), customerFields(), discountRow, payRow, receivedRow,
       h('div', { id: 'totals' }), h('div', { id: 'bill-errors' }),
       h('div', { class: 'actions' },
         h('button', { type: 'button', class: 'primary', onclick: viewReceipt }, txt(S.view)),
@@ -528,7 +568,7 @@
   // Receipt
   // ---------------------------------------------------------------------------
 
-  const staffNames = () => [...new Set(bill.lines.map((l) => l.staff).filter(Boolean))];
+  const staffNames = () => [...new Set(bill.lines.map((l) => (l.staff || '').trim()).filter(Boolean))];
 
   /** Everything the receipt shows, used by both the on-screen receipt and the shared image. */
   function receiptData() {
@@ -643,7 +683,7 @@
         name_vi: l.label.vi,
         name_en: l.label.en,
         category: cat(l.cat).vi,
-        staff: l.staff || '',
+        staff: (l.staff || '').trim(),
         qty: l.qty,
         price: l.price,
         amount: amounts[i],
@@ -676,6 +716,7 @@
   let saveState = 'idle'; // idle | saving | error | queued | not-configured
   async function saveBill() {
     if (!bill.lines.length || saveState === 'saving') return;
+    bill.lines.forEach((l) => { if (isOutside(l)) rememberOutside(l.staff); });
     const payload = billPayload();
     saveState = 'saving';
     renderSaveStatus();

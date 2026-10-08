@@ -117,6 +117,8 @@ main { padding-bottom: 96px; }
   background: #f4f1ec; border: 1.5px solid var(--line);
 }
 .staff-chip[aria-checked=true] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.staff-chip.outside { border-style: dashed; }
+.outside-name { flex-basis: 100%; margin-top: 2px; padding: 9px 12px !important; font-size: 16px !important; }
 .comm-select {
   width: 100%; font: inherit; font-size: 16px; padding: 11px 12px;
   border: 1px solid var(--line); border-radius: 12px; background: #fbfaf7; color: var(--ink);
