@@ -72,6 +72,7 @@ main { padding-bottom: 96px; }
 .price-edit input { max-width: 150px; padding: 8px 10px; font-size: 16px; }
 .price-edit .range { display: block; margin-top: 4px; }
 .needs-price { border-color: var(--warn) !important; background: var(--warn-soft) !important; }
+.price-input.changed { border-color: var(--accent) !important; background: var(--accent-soft) !important; font-weight: 600; }
 
 .row-field { margin-top: 16px; }
 .discount { display: flex; gap: 8px; align-items: stretch; }

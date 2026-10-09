@@ -430,21 +430,28 @@
         if (line.qty < 1) bill.lines.splice(i, 1);
         save(); renderBill(); renderMenu();
       };
-      let priceNode;
-      if (isRange(line) || line.custom) {
-        const input = moneyInput(line.price, (v) => {
-          line.price = digits(v);
-          line.confirmed = true;
-          input.classList.remove('needs-price');
-          amount.textContent = money(line.price * line.qty);
-          save(); renderTotals();
-        }, { class: `price-input${line.confirmed ? '' : ' needs-price'}`, 'aria-label': txt(S.enterPrice) });
-        priceNode = h('div', { class: 'price-edit' },
-          input,
-          isRange(line) ? h('span', { class: 'muted range' }, `${txt(S.from)}: ${moneyRange(line.lo, line.hi)}`) : null);
-      } else {
-        priceNode = h('span', { class: 'unit' }, money(line.price));
-      }
+      // Every price can be changed (special price, promotion, extra work). The menu price stays visible underneath.
+      const menuHint = () => {
+        if (line.custom) return null;
+        if (isRange(line)) return `${txt(S.from)}: ${moneyRange(line.lo, line.hi)}`;
+        return line.price !== line.lo ? `${txt(S.from)}: ${money(line.lo)}` : null;
+      };
+      const hint = h('span', { class: 'muted range' }, menuHint() || '');
+      hint.hidden = !menuHint();
+      const input = moneyInput(line.price, (v) => {
+        line.price = digits(v);
+        line.confirmed = true;
+        input.classList.remove('needs-price', 'invalid');
+        input.classList.toggle('changed', !line.custom && !isRange(line) && line.price !== line.lo);
+        amount.textContent = money(line.price * line.qty);
+        hint.textContent = menuHint() || '';
+        hint.hidden = !menuHint();
+        save(); renderTotals();
+      }, {
+        class: `price-input${line.confirmed ? '' : ' needs-price'}${!line.custom && !isRange(line) && line.price !== line.lo ? ' changed' : ''}`,
+        'aria-label': txt(S.enterPrice),
+      });
+      const priceNode = h('div', { class: 'price-edit' }, input, hint);
       let staffPick = null;
       if (needsStaff(line)) {
         const outside = isOutside(line);
