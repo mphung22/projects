@@ -41,8 +41,8 @@
     lash: W('Nối mi', 'Lash extensions'),
     wax: W('Waxing', 'Waxing'),
     heel: W('Chà gót', 'Heel scrub'),
-    massage: W('Massage (lượt)', 'Massage (per session)'),
-    headspa: W('Gội đầu (lượt)', 'Head spa (per session)'),
+    massage: W('Massage / body (20%)', 'Massage / body (20%)'),
+    headspa: W('Gội đầu (15%)', 'Head spa (15%)'),
     none: W('Không hoa hồng', 'No commission'),
   };
   // Which money source each payment method counts under in the daily totals.
@@ -104,6 +104,8 @@
     outside: W('+ Thợ ngoài', '+ Outside'),
     outsideName: W('Tên thợ ngoài', 'Outside worker name'),
     commGroup: W('Nhóm hoa hồng', 'Commission group'),
+    comboHint: W('Gói gội + body: thêm 2 dòng riêng (phần gội, phần body) với giá từng phần, để hoa hồng tính đúng 15% và 20%.',
+                 'Head spa + body combo: add two separate lines (head spa part, body part) with each part\'s price, so commission is 15% and 20% correctly.'),
     saveBill: W('Lưu hoá đơn', 'Save bill'),
     saving: W('Đang lưu…', 'Saving…'),
     saved: W('Đã lưu vào Google Sheet', 'Saved to Google Sheet'),
@@ -152,7 +154,7 @@
     if (serviceId === 'nails') return 'nails';
     if (serviceId === 'waxing') return 'wax';
     if (serviceId === 'massage') return 'massage';
-    if (serviceId === 'head_spa') return itemKey === 'addons' ? 'none' : 'headspa';
+    if (serviceId === 'head_spa') return 'headspa'; // rituals and add-ons, 15% of the selling price
     if (serviceId === 'brows_lashes') {
       const ext = typeof EXT_IDS !== 'undefined' ? EXT_IDS : [];
       return ext.includes(optionId) ? 'lash' : 'none';
@@ -160,6 +162,7 @@
     return 'none';
   }
   const COMM_BY_KEY = {};
+  const ADDON_KEYS = new Set(); // head spa add-ons: commission yes, but not counted as a session
   const commOf = (line) => line.comm || COMM_BY_KEY[line.key] || 'none';
   const needsStaff = (line) => line.cat !== 'member';
 
@@ -181,6 +184,7 @@
           }
           const key = `${s.id}:${o.id}`;
           COMM_BY_KEY[key] = commissionGroup(s.id, item.key, o.id);
+          if (s.id === 'head_spa' && item.key === 'addons') ADDON_KEYS.add(key);
           group.options.push({ key, label: plainLabel(o.label), price: o.price, ...parsePrice(o.price) });
         }
       }
@@ -411,6 +415,7 @@
       h('label', { class: 'field' }, h('span', { class: 'label' }, txt(S.customName)), nameInput),
       h('label', { class: 'field' }, h('span', { class: 'label' }, txt(S.customPrice)), priceInput),
       h('label', { class: 'field' }, h('span', { class: 'label' }, txt(S.commGroup)), commSelect),
+      h('p', { class: 'muted' }, txt(S.comboHint)),
       h('button', { type: 'button', class: 'secondary', onclick: add }, txt(S.addBtn)));
   }
 
@@ -697,6 +702,7 @@
         discount: shares[i],
         net: amounts[i] - shares[i],
         comm: commOf(l),
+        session: !ADDON_KEYS.has(l.key),
       })),
     };
   }
