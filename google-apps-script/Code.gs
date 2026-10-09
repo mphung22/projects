@@ -347,9 +347,9 @@ const COMM_GROUPS = {
   lash: { name: 'Nối mi', kind: 'pct', rate: 0.10 },
   wax: { name: 'Waxing', kind: 'pct', rate: 0.15 },
   heel: { name: 'Chà gót', kind: 'pct', rate: 0.15 },
-  massage: { name: 'Massage', kind: 'turn', rate: '' },
-  headspa: { name: 'Gội đầu', kind: 'turn', rate: '' },
-  none: { name: 'Không HH', kind: 'none', rate: '' },
+  massage: { name: 'Massage', kind: 'pct', rate: 0.20, count: true }, // all body treatments: body, neck & shoulder, foot, scrub, wrap
+  headspa: { name: 'Gội đầu', kind: 'pct', rate: 0.15, count: true }, // head spa rituals and their add-ons
+  none: { name: 'Không HH', kind: 'none', rate: 0 },
 };
 
 const BILL_COLUMNS = [
@@ -441,7 +441,7 @@ function saveBill(data) {
       uid, plain(cleanText(data.no, 20)), date, plain(cleanText(l.staff, 60)),
       plain(cleanText(l.category, 40)), plain(cleanText(l.name_vi, 200)),
       qty, money(l.price), money(l.amount), money(l.discount), money(l.net),
-      COMM_GROUPS[group].name, COMM_GROUPS[group].kind === 'turn' ? qty : 0, source,
+      COMM_GROUPS[group].name, COMM_GROUPS[group].count && l.session !== false ? qty : 0, source, // add-ons are not sessions
     ];
   });
   linesSheet.insertRowsAfter(1, lineRows.length);
@@ -506,9 +506,28 @@ function billTab(ss, name, columns, moneyCols) {
 }
 
 /** Commission rates, editable by the owner. Created once with the agreed defaults. */
+const RATE_ROWS = {
+  Massage: ['Massage', '% sau giảm giá / % after discount', 0.20,
+    'Body, cổ vai gáy, chân, tẩy tế bào chết, ủ body. Gói gội + body: nhập thành 2 dòng riêng. / All body treatments; enter a head spa + body combo as two lines.'],
+  'Gội đầu': ['Gội đầu', '% sau giảm giá / % after discount', 0.15,
+    'Liệu trình gội đầu và dịch vụ thêm. Gói gội + body: nhập thành 2 dòng riêng. / Head spa rituals and add-ons; enter a combo as two lines.'],
+};
+
+/** Massage and head spa used to be paid per session; they are now a percentage of the selling price. */
+function upgradeRates(sheet) {
+  const last = sheet.getLastRow();
+  if (last < 2) return;
+  const values = sheet.getRange(2, 1, last - 1, 2).getValues();
+  values.forEach(([name, how], i) => {
+    if (!RATE_ROWS[name] || !/lượt|session/i.test(String(how))) return;
+    sheet.getRange(i + 2, 1, 1, 4).setValues([RATE_ROWS[name]]);
+    sheet.getRange(i + 2, 3).setNumberFormat('0%');
+  });
+}
+
 function ratesTab(ss) {
   let sheet = ss.getSheetByName(BILL_TABS.rates);
-  if (sheet) return sheet;
+  if (sheet) { upgradeRates(sheet); return sheet; }
   sheet = ss.insertSheet(BILL_TABS.rates);
   const rows = [
     ['Nhóm / Group', 'Cách tính / How', 'Mức / Rate', 'Ghi chú / Note'],
@@ -516,13 +535,12 @@ function ratesTab(ss) {
     ['Nối mi', '% sau giảm giá / % after discount', 0.10, 'Nối mi, nâng cấp sợi, mi dưới, tháo mi / Lash extensions'],
     ['Waxing', '% sau giảm giá / % after discount', 0.15, 'Tất cả waxing / All waxing'],
     ['Chà gót', '% sau giảm giá / % after discount', 0.15, 'Thêm bằng mục "Khác" / Add with "Other"'],
-    ['Massage', '₫ mỗi lượt / ₫ per session', '', 'Điền số tiền mỗi lượt / Fill in the amount per session'],
-    ['Gội đầu', '₫ mỗi lượt / ₫ per session', '', 'Liệu trình gội đầu (không tính dịch vụ thêm) / Head spa rituals, not add-ons'],
+    RATE_ROWS.Massage,
+    RATE_ROWS['Gội đầu'],
   ];
   sheet.getRange(1, 1, rows.length, 4).setValues(rows);
   sheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#1E2B22').setFontColor('#FBF8F3');
-  sheet.getRange(2, 3, 4, 1).setNumberFormat('0%');
-  sheet.getRange(6, 3, 2, 1).setNumberFormat('#,##0');
+  sheet.getRange(2, 3, 6, 1).setNumberFormat('0%');
   sheet.getRange(2, 3, 6, 1).setBackground('#FFF7E0').setFontWeight('bold');
   sheet.setColumnWidths(1, 1, 110);
   sheet.setColumnWidth(2, 230);
@@ -539,9 +557,9 @@ function readRates(ss) {
   const sheet = ratesTab(ss);
   const values = sheet.getRange(2, 1, Math.max(1, sheet.getLastRow() - 1), 3).getValues();
   const rates = {};
-  Object.values(COMM_GROUPS).forEach((g) => { rates[g.name] = { kind: g.kind, rate: 0 }; });
+  Object.values(COMM_GROUPS).forEach((g) => { rates[g.name] = { kind: g.kind, rate: g.rate || 0 }; });
   values.forEach(([name, how, rate]) => {
-    if (!name || !rates[name]) return;
+    if (!name || !rates[name] || rate === '' || rate === null) return; // blank cell keeps the default rate
     rates[name].rate = Number(rate) || 0;
   });
   return rates;
@@ -614,22 +632,26 @@ function computeBillSummaries(bills, lines, rates) {
   ];
 
   const rate = (name) => (rates[name] ? rates[name].rate : 0);
+  // Each service line is one part of a sale at its own price, so a head spa + body combo entered as two lines
+  // is paid once per part (15% of the head spa part, 20% of the body part), never twice on the whole bill.
   const staffRow = (list) => {
     const netOf = (names) => sum(list.filter((l) => names.includes(l.group)), (l) => l.net);
+    const commOf = (names) => sum(names, (n) => netOf([n]) * rate(n));
     const turnsOf = (name) => sum(list.filter((l) => l.group === name), (l) => l.turns);
-    const nailsLash = netOf(['Nails', 'Nối mi']);
-    const waxHeel = netOf(['Waxing', 'Chà gót']);
-    const pct10 = netOf(['Nails']) * rate('Nails') + netOf(['Nối mi']) * rate('Nối mi');
-    const pct15 = netOf(['Waxing']) * rate('Waxing') + netOf(['Chà gót']) * rate('Chà gót');
-    const massage = turnsOf('Massage');
-    const headspa = turnsOf('Gội đầu');
-    const turnPay = massage * rate('Massage') + headspa * rate('Gội đầu');
-    return [sum(list, (l) => l.net), nailsLash, Math.round(pct10), waxHeel, Math.round(pct15), massage, headspa,
-      Math.round(turnPay), Math.round(pct10 + pct15 + turnPay)];
+    const parts = [['Nails', 'Nối mi'], ['Waxing', 'Chà gót'], ['Gội đầu'], ['Massage']];
+    const cells = [];
+    let total = 0;
+    parts.forEach((names) => {
+      const c = Math.round(commOf(names));
+      total += c;
+      cells.push(netOf(names), c);
+    });
+    return [sum(list, (l) => l.net), ...cells, turnsOf('Gội đầu'), turnsOf('Massage'), total];
   };
-  const staffHeader = ['Nhân viên / Staff', 'Doanh thu DV (sau giảm) / Service revenue', 'Nails + Nối mi', 'HH Nails + Nối mi / Commission',
-    'Waxing + Chà gót', 'HH Waxing + Chà gót / Commission', 'Lượt massage / Massage sessions', 'Lượt gội đầu / Head spa sessions',
-    'Tiền lượt / Session pay', 'Tổng hoa hồng / Total commission'];
+  const staffHeader = ['Nhân viên / Staff', 'Doanh thu DV (sau giảm) / Service revenue',
+    'Nails + Nối mi', 'HH Nails + Nối mi / Commission', 'Waxing + Chà gót', 'HH Waxing + Chà gót / Commission',
+    'Gội đầu / Head spa', 'HH gội đầu / Commission', 'Massage / body', 'HH massage / body / Commission',
+    'Lượt gội đầu / Head spa sessions', 'Lượt massage / Body sessions', 'Tổng hoa hồng / Total commission'];
   const staffName = (l) => l.staff || '(chưa chọn / not set)';
   const staffRows = (periodFn, labelFn) => {
     const rows = [];
@@ -641,7 +663,7 @@ function computeBillSummaries(bills, lines, rates) {
       });
     return rows;
   };
-  const staffMoney = [2, 3, 4, 5, 6, 9, 10];
+  const staffMoney = [2, 3, 4, 5, 6, 7, 8, 9, 10, 13];
   const staffBlocks = [
     {
       title: 'Theo tháng / By month',
