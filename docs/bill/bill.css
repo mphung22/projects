@@ -212,3 +212,12 @@ body.printing .r-foot { margin-top: 8px; padding-top: 6px; border-top: 1px solid
   main { padding: 0; margin: 0; max-width: none; }
   .r-items, .r-total, .r-title, .r-foot { break-inside: avoid; }
 }
+
+/* Member cards */
+.member-panel .member-search { display: flex; gap: 8px; }
+.member-panel .member-search input { flex: 1; min-width: 0; }
+.member-card { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--accent-soft); }
+.member-tag { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; }
+.member-result { display: flex; justify-content: space-between; gap: 12px; width: 100%; margin-top: 8px; padding: 10px 14px; text-align: left; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; cursor: pointer; }
+.member-result:hover { border-color: var(--accent); }
+.member-panel > .secondary { margin-top: 10px; }

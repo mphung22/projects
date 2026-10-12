@@ -57,6 +57,7 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     if (data.website) return json({ ok: true }); // honeypot filled in: a bot
     if (data.type === 'bill') return json(saveBill(data)); // from the bill page (see "Bills" below)
+    if (data.type === 'member_search') return json(searchMembers(data)); // see "Member cards" below
 
     const submitted = new Date();
     const signatureUrl = saveSignature(data.signature, data.full_name, submitted);
@@ -414,6 +415,9 @@ function saveBill(data) {
   removeBillRows(billsSheet, uid);
   removeBillRows(linesSheet, uid);
 
+  // Member cards: loads (card sold) and spends (paid by card) are written first, so a refused spend saves nothing.
+  const card = applyMemberCard(ss, data, uid, date, lines);
+
   const source = METHOD_SOURCE[data.method] || (SOURCES.includes(data.source) ? data.source : 'Khác');
   const money = (v) => Math.max(0, Math.round(Number(v) || 0));
   const staff = [...new Set(lines.map((l) => cleanText(l.staff, 60)).filter(Boolean))].join(', ');
@@ -449,7 +453,7 @@ function saveBill(data) {
   styleBillRows(linesSheet, 2, lineRows.length, LINE_COLUMNS, LINE_MONEY_COLS);
 
   rebuildBillSummaries();
-  return { ok: true };
+  return Object.assign({ ok: true }, card);
 }
 
 /** "2026-10-06" → a date at noon (noon keeps the same calendar day in any time zone setting). */
@@ -719,4 +723,161 @@ function writeSummary(ss, name, blocks) {
   sheet.setColumnWidth(1, 105);
   for (let c = 2; c <= width; c += 1) sheet.setColumnWidth(c, 120);
   sheet.setFrozenColumns(name === BILL_TABS.staff ? 2 : 1);
+}
+
+// ===========================================================================
+// Member cards (prepaid balance)
+//
+// "Thẻ - Giao dịch / Card ledger" is the source of truth: one row per card sale (+) or payment by card (−),
+// tagged with the bill id. A balance is always the sum of a member's ledger rows, so saving the same bill
+// again replaces its rows and never deducts twice. "Thẻ thành viên - Members" lists each member with
+// formulas for balance, total loaded and total spent. Fix a mistake by editing or deleting a ledger row.
+//
+// The web app URL is public, so every member request needs the staff PIN. Set it once:
+// Project Settings (gear) › Script properties › Add property › STAFF_PIN = your PIN (6+ characters).
+// Ten wrong PINs lock member requests for 10 minutes.
+// ===========================================================================
+
+const MEMBER_TABS = { members: 'Thẻ thành viên - Members', ledger: 'Thẻ - Giao dịch / Card ledger' };
+const MEMBER_COLUMNS = [
+  { title: 'Mã thẻ / Member ID', width: 130 },
+  { title: 'Tên / Name', width: 180 },
+  { title: 'SĐT / Phone', width: 120 },
+  { title: 'Ngày tạo / Created', width: 110 },
+  { title: 'Số dư / Balance', width: 120 },
+  { title: 'Tổng nạp / Loaded', width: 120 },
+  { title: 'Đã dùng / Spent', width: 120 },
+];
+const LEDGER_COLUMNS = [
+  { title: 'Mã HĐ / Bill ID', width: 110 },
+  { title: 'Ngày / Date', width: 95 },
+  { title: 'Mã thẻ / Member ID', width: 130 },
+  { title: 'Tên / Name', width: 170 },
+  { title: 'SĐT / Phone', width: 110 },
+  { title: 'Loại / Type', width: 150 },
+  { title: 'Số tiền / Amount', width: 110 },
+  { title: 'Số HĐ / No.', width: 115 },
+  { title: 'Ghi chú / Note', width: 260 },
+  { title: 'Ghi lúc / Recorded', width: 140 },
+];
+const L_BILL = 0, L_DATE = 1, L_MEMBER = 2, L_AMOUNT = 6;
+
+function memberTab(ss, name, columns) {
+  let sheet = ss.getSheetByName(name);
+  if (sheet) return sheet;
+  sheet = ss.insertSheet(name);
+  const titles = columns.map((c) => c.title);
+  if (sheet.getMaxColumns() < titles.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), titles.length - sheet.getMaxColumns());
+  sheet.getRange(1, 1, 1, titles.length).setValues([titles])
+    .setFontWeight('bold').setBackground('#1E2B22').setFontColor('#FBF8F3').setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 32);
+  sheet.setFrozenRows(1);
+  columns.forEach((c, i) => sheet.setColumnWidth(i + 1, c.width));
+  return sheet;
+}
+
+/** Throws 'member:setup' or 'member:locked' or 'member:pin' unless data.pin matches the STAFF_PIN script property. */
+function checkPin(data) {
+  const expected = PropertiesService.getScriptProperties().getProperty('STAFF_PIN');
+  if (!expected) throw new Error('member:setup');
+  const cache = CacheService.getScriptCache();
+  const fails = Number(cache.get('pinfails') || 0);
+  if (fails >= 10) throw new Error('member:locked');
+  if (String(data.pin || '') !== expected) {
+    cache.put('pinfails', String(fails + 1), 600);
+    throw new Error('member:pin');
+  }
+}
+
+/** Balance of every member from the ledger, skipping the rows of bill `exceptBill`. */
+function ledgerBalances(ledger, exceptBill) {
+  const balances = {};
+  const last = ledger.getLastRow();
+  if (last < 2) return balances;
+  ledger.getRange(2, 1, last - 1, LEDGER_COLUMNS.length).getValues().forEach((row) => {
+    if (exceptBill && String(row[L_BILL]) === exceptBill) return;
+    const id = String(row[L_MEMBER]);
+    balances[id] = (balances[id] || 0) + (Number(row[L_AMOUNT]) || 0);
+  });
+  return balances;
+}
+
+function memberRows(sheet) {
+  const last = sheet.getLastRow();
+  if (last < 2) return [];
+  return sheet.getRange(2, 1, last - 1, 4).getValues().map((r) => ({ id: String(r[0]), name: String(r[1]), phone: String(r[2]) }));
+}
+
+function fold(text) {
+  return String(text || '').toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/** { type: 'member_search', pin, q } → up to 10 members whose name or phone contains q, with balances. */
+function searchMembers(data) {
+  checkPin(data);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const members = memberRows(memberTab(ss, MEMBER_TABS.members, MEMBER_COLUMNS));
+  const balances = ledgerBalances(memberTab(ss, MEMBER_TABS.ledger, LEDGER_COLUMNS), '');
+  const q = fold(cleanText(data.q, 40));
+  const digitsQ = q.replace(/\D/g, '');
+  if (q.length < 2) return { ok: true, members: [] };
+  const found = members.filter((m) => fold(m.name).includes(q) || (digitsQ.length >= 3 && m.phone.replace(/\D/g, '').includes(digitsQ)));
+  return {
+    ok: true,
+    members: found.slice(0, 10).map((m) => ({ id: m.id, name: m.name, phone: m.phone, balance: balances[m.id] || 0 })),
+  };
+}
+
+/**
+ * Called by saveBill. Card lines (line.card_value) add to the member's balance; a bill paid with
+ * method 'member' deducts its total. Returns { balance_before, balance } for the bill page, or {} when
+ * the bill has nothing to do with member cards.
+ */
+function applyMemberCard(ss, data, uid, date, lines) {
+  const load = lines.reduce((sum, l) => sum + Math.max(0, Math.round(Number(l.card_value) || 0)) * Math.max(1, Math.round(Number(l.qty) || 1)), 0);
+  const spend = data.method === 'member' ? Math.max(0, Math.round(Number(data.total) || 0)) : 0;
+  if (!load && !spend) return {};
+  if (load && spend) throw new Error('member:both');
+  checkPin(data);
+  const member = data.member || {};
+  const memberId = String(member.id || '').replace(/[^\w-]/g, '').slice(0, 40);
+  if (!memberId) throw new Error('member:none');
+
+  const members = memberTab(ss, MEMBER_TABS.members, MEMBER_COLUMNS);
+  const ledger = memberTab(ss, MEMBER_TABS.ledger, LEDGER_COLUMNS);
+  const known = memberRows(members).find((m) => m.id === memberId);
+  if (!known && !load) throw new Error('member:unknown'); // only buying a card can create a member
+
+  // Saving a bill again replaces its card rows.
+  removeBillRows(ledger, uid);
+  const before = ledgerBalances(ledger, '')[memberId] || 0;
+  if (spend && spend > before) throw new Error('member:balance:' + before);
+
+  const name = known ? known.name : plain(cleanText(member.name, 80));
+  const phone = known ? known.phone : plain(cleanText(member.phone, 30));
+  if (!known) {
+    const row = members.getLastRow() + 1;
+    members.getRange(row, 1, 1, 4).setValues([[memberId, name, phone, new Date()]]);
+    members.getRange(row, 5, 1, 3).setFormulas([[
+      `=SUMIF('${MEMBER_TABS.ledger}'!C:C,A${row},'${MEMBER_TABS.ledger}'!G:G)`,
+      `=SUMIFS('${MEMBER_TABS.ledger}'!G:G,'${MEMBER_TABS.ledger}'!C:C,A${row},'${MEMBER_TABS.ledger}'!G:G,">0")`,
+      `=-SUMIFS('${MEMBER_TABS.ledger}'!G:G,'${MEMBER_TABS.ledger}'!C:C,A${row},'${MEMBER_TABS.ledger}'!G:G,"<0")`,
+    ]]);
+    members.getRange(row, 4).setNumberFormat('dd/MM/yyyy');
+    members.getRange(row, 5, 1, 3).setNumberFormat('#,##0');
+    members.getRange(row, 1, 1, 7).setFontWeight('normal').setBackground('#FFFFFF').setFontColor('#1E2B22');
+  }
+
+  const services = lines.map((l) => cleanText(l.name_vi, 80)).join(', ');
+  const amount = load || -spend;
+  const row = ledger.getLastRow() + 1;
+  ledger.getRange(row, 1, 1, LEDGER_COLUMNS.length).setValues([[
+    uid, date, memberId, name, phone, load ? 'Mua thẻ / Card sold' : 'Thanh toán / Paid by card', amount,
+    plain(cleanText(data.no, 20)), plain(services, 300), new Date(),
+  ]]);
+  ledger.getRange(row, 1, 1, LEDGER_COLUMNS.length).setFontWeight('normal').setBackground('#FFFFFF').setFontColor('#1E2B22');
+  ledger.getRange(row, 2).setNumberFormat('dd/MM/yyyy');
+  ledger.getRange(row, 7).setNumberFormat('#,##0;[Red]-#,##0');
+  ledger.getRange(row, 10).setNumberFormat('dd/MM/yyyy HH:mm');
+  return { balance_before: before, balance: before + amount };
 }

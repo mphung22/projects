@@ -13,11 +13,14 @@ This repo was originally Python real-estate notebooks (repo root). The Seren wor
 | `docs/config.js` | Google Apps Script endpoint for check-in submissions. |
 | `docs/i18n.js` | Chinese, Korean, French, Japanese and Russian wording for the check-in **and the iPad app**, keyed by the English text (`strings`, iPad-only `app`, and `health`). `L(...)` in both apps picks it up. The `health` block (health, contraindication and consent wording) has **not** been checked by native speakers yet. |
 | `google-apps-script/Code.gs` | The Apps Script bound to the private Google Sheet "Seren Check-ins". Each check-in becomes one short row at the top of the "Check-ins" tab (newest first), any signature is saved as a PNG in Drive, and the owner gets an email. Deploy changes as a new version of the existing web-app deployment so the URL stays the same. |
+| `docs/bill/` | Reception **bill page** (desktop browser): services, discount, receipt printing, saves to the Sheet. Also handles **member cards**: sale loads a balance, paying with "Thẻ thành viên" deducts it. Balances live in the Sheet ledger (`Code.gs`, needs the `STAFF_PIN` script property). |
 | `ios-apps/print/` | Printable Google review cards, the check-in door poster, QR PNGs, and the scripts that make them. |
 
 - **Branch:** `claude/ios-apps-seren-massage-f3sitc`. This is also the GitHub Pages source, so pushing updates the live check-in site. PR: mphung22/projects#1.
 - **Main website:** serensaigon.com is a separate Netlify project, `mellow-palmier-d02528`, deployed by Netlify Drop. **Don't drag single files onto it**: a drop replaces the whole site. The DNS is at Namecheap (CNAME `checkin` → `mphung22.github.io`).
 - **Google review link:** `https://g.page/r/CTpMl46hoXZSEBM/review`. It's the app default in `ios-apps/Shared/Settings.swift`.
+
+- **The iPad is gone**: the owner no longer has the iPad, and reception uses the desktop web pages (`docs/`). `ios-apps/Shared/Members.swift` (iPad member cards) is unused and untested.
 
 ## Conventions
 - Every customer-facing string is bilingual: `L("Tiếng Việt", "English")`, in Swift and in `docs/app.js`. In both, `L` also picks up zh/ko/fr/ja/ru from `docs/i18n.js` (Swift via the generated `Translations.swift`; missing ones fall back to English). The iPad staff area stays Vietnamese + English. **When you add or change an English string, add its translations to `i18n.js` too.** Records, the Google Sheet and emails stay Vietnamese + English whatever language the customer picks.

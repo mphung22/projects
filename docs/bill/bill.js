@@ -28,6 +28,8 @@
   const TZ = 'Asia/Ho_Chi_Minh';
   const STORE_KEY = 'seren-bill';
   const QUEUE_KEY = 'seren-bill-queue';
+  // Staff PIN for member cards (the STAFF_PIN script property in the Google Sheet), kept on this computer.
+  const PIN_KEY = 'seren-member-pin';
 
   // Staff who do services. Add or remove names here.
   const STAFF = ['Hà Khanh', 'Mỹ An'];
@@ -114,6 +116,26 @@
     queued: W('Không có mạng. Hoá đơn sẽ tự gửi lại khi có mạng.', 'No connection. The bill will be sent automatically when back online.'),
     saveError: W('Không lưu được. Vui lòng thử lại.', 'Could not save. Please try again.'),
     notConfigured: W('Chưa cài đặt nơi lưu hoá đơn.', 'Bill saving is not set up.'),
+    memberTitle: W('Thẻ thành viên của khách', 'Customer\'s member card'),
+    memberSearch: W('Tìm theo tên hoặc SĐT', 'Search by name or phone'),
+    memberFind: W('Tìm', 'Search'),
+    memberNew: W('Tạo thẻ mới cho khách này', 'Create a new member for this customer'),
+    memberNewNeedsName: W('Nhập tên khách ở trên trước khi tạo thẻ mới.', 'Enter the customer name above before creating a new member.'),
+    memberNone: W('Không tìm thấy. Thử tên hoặc SĐT khác.', 'No match. Try another name or phone.'),
+    memberChange: W('Đổi thẻ', 'Change'),
+    memberBalance: W('Số dư thẻ', 'Card balance'),
+    memberAfter: W('Số dư sau thanh toán', 'Balance after payment'),
+    memberNewTag: W('Thẻ mới', 'New member'),
+    memberPick: W('Chọn thẻ thành viên của khách trước khi xem hoá đơn.', 'Choose the customer\'s member card before viewing the receipt.'),
+    memberShort: W('Số dư thẻ không đủ để thanh toán hoá đơn này.', 'The card balance is not enough for this bill.'),
+    memberBoth: W('Không thể dùng thẻ thành viên để mua thẻ thành viên. Chọn cách thanh toán khác.', 'A member card cannot pay for a member card. Choose another payment method.'),
+    pinPrompt: W('Nhập mã PIN nhân viên để dùng thẻ thành viên', 'Enter the staff PIN to use member cards'),
+    pinWrong: W('Sai mã PIN.', 'Wrong PIN.'),
+    pinLocked: W('Nhập sai quá nhiều lần. Thử lại sau 10 phút.', 'Too many wrong PINs. Try again in 10 minutes.'),
+    pinSetup: W('Chưa cài STAFF_PIN trong Google Sheet (xem google-apps-script/README.md).', 'STAFF_PIN is not set in the Google Sheet (see google-apps-script/README.md).'),
+    memberLoadError: W('Không tìm được thẻ. Kiểm tra mạng rồi thử lại.', 'Could not search. Check the connection and try again.'),
+    cardLoaded: W('Nạp vào thẻ', 'Loaded to card'),
+    cardBalance: W('Số dư thẻ còn lại', 'Card balance'),
     confirmUnsaved: W('Hoá đơn này CHƯA được lưu. Vẫn bắt đầu hoá đơn mới?', 'This bill has NOT been saved. Start a new bill anyway?'),
   };
 
@@ -128,11 +150,11 @@
 
   // Prepaid member cards, as on serensaigon.com/pricing (SEREN membership).
   const MEMBER_CARDS = [
-    { id: 'card_touch', label: W('Thẻ Seren Touch · dùng 550.000₫', 'Seren Touch card · 550.000₫ to spend'), price: '500.000₫' },
-    { id: 'card_flow', label: W('Thẻ Seren Flow · dùng 1.150.000₫', 'Seren Flow card · 1.150.000₫ to spend'), price: '1.000.000₫' },
-    { id: 'card_glow', label: W('Thẻ Seren Glow · dùng 2.250.000₫', 'Seren Glow card · 2.250.000₫ to spend'), price: '2.000.000₫' },
-    { id: 'card_balance', label: W('Thẻ Seren Balance · dùng 3.450.000₫', 'Seren Balance card · 3.450.000₫ to spend'), price: '3.000.000₫' },
-    { id: 'card_vip', label: W('Thẻ Serendipity VIP · dùng 5.900.000₫', 'Serendipity VIP card · 5.900.000₫ to spend'), price: '5.000.000₫' },
+    { id: 'card_touch', value: 550000, label: W('Thẻ Seren Touch · dùng 550.000₫', 'Seren Touch card · 550.000₫ to spend'), price: '500.000₫' },
+    { id: 'card_flow', value: 1150000, label: W('Thẻ Seren Flow · dùng 1.150.000₫', 'Seren Flow card · 1.150.000₫ to spend'), price: '1.000.000₫' },
+    { id: 'card_glow', value: 2250000, label: W('Thẻ Seren Glow · dùng 2.250.000₫', 'Seren Glow card · 2.250.000₫ to spend'), price: '2.000.000₫' },
+    { id: 'card_balance', value: 3450000, label: W('Thẻ Seren Balance · dùng 3.450.000₫', 'Seren Balance card · 3.450.000₫ to spend'), price: '3.000.000₫' },
+    { id: 'card_vip', value: 5900000, label: W('Thẻ Serendipity VIP · dùng 5.900.000₫', 'Serendipity VIP card · 5.900.000₫ to spend'), price: '5.000.000₫' },
   ];
 
   // ---------------------------------------------------------------------------
@@ -165,6 +187,10 @@
   const ADDON_KEYS = new Set(); // head spa add-ons: commission yes, but not counted as a session
   const commOf = (line) => line.comm || COMM_BY_KEY[line.key] || 'none';
   const needsStaff = (line) => line.cat !== 'member';
+  const cardValue = (line) => (line.cat === 'member' ? (MEMBER_CARDS.find((c) => `member:${c.id}` === line.key) || {}).value || 0 : 0);
+  /** Money added to the member's card by the card lines on this bill. */
+  const cardLoad = () => bill.lines.reduce((sum, l) => sum + cardValue(l) * l.qty, 0);
+  const needsMember = () => bill.pay === 'member' || cardLoad() > 0;
 
   function buildMenu() {
     const menuServices = typeof SERVICES !== 'undefined' ? SERVICES : [];
@@ -220,7 +246,7 @@
 
   const blankBill = () => ({
     uid: null, created: null, customer: '', phone: '',
-    lines: [], discount: '', discountMode: 'vnd', pay: 'cash', received: '',
+    lines: [], discount: '', discountMode: 'vnd', pay: 'cash', received: '', member: null,
     savedHash: null, savedAt: null,
   });
   const newUid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -419,6 +445,103 @@
       h('button', { type: 'button', class: 'secondary', onclick: add }, txt(S.addBtn)));
   }
 
+  // ---------------------------------------------------------------------------
+  // Member cards (balances live in the Google Sheet)
+  // ---------------------------------------------------------------------------
+
+  const memberUI = { q: '', results: null, busy: false, error: null };
+
+  function memberErrorText(message) {
+    const m = /member:(pin|locked|setup|both|none|unknown|balance)/.exec(message || '');
+    if (!m) return null;
+    return { pin: S.pinWrong, locked: S.pinLocked, setup: S.pinSetup, both: S.memberBoth, none: S.memberPick, unknown: S.memberNone, balance: S.memberShort }[m[1]];
+  }
+
+  /** The staff PIN, asked for once and kept on this computer. */
+  function askPin() {
+    let pin = storage.get(PIN_KEY);
+    if (pin) return pin;
+    pin = (window.prompt(txt(S.pinPrompt)) || '').trim();
+    if (pin) storage.set(PIN_KEY, pin);
+    return pin;
+  }
+
+  async function searchMembers() {
+    const q = memberUI.q.trim();
+    if (q.length < 2 || memberUI.busy) return;
+    const pin = askPin();
+    if (!pin) return;
+    memberUI.busy = true;
+    memberUI.error = null;
+    renderBill();
+    try {
+      const endpoint = (window.SEREN_CHECKIN || {}).endpoint;
+      const response = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ type: 'member_search', pin, q }), redirect: 'follow',
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!result.ok) {
+        if (/member:pin/.test(result.error || '')) storage.set(PIN_KEY, '');
+        throw new Error(result.error || 'error');
+      }
+      memberUI.results = result.members;
+    } catch (err) {
+      memberUI.results = null;
+      memberUI.error = memberErrorText(err.message) || S.memberLoadError;
+    }
+    memberUI.busy = false;
+    renderBill();
+  }
+
+  function chooseMember(member) {
+    bill.member = member;
+    if (!bill.customer.trim()) bill.customer = member.name;
+    if (!bill.phone.trim()) bill.phone = member.phone || '';
+    memberUI.results = null;
+    memberUI.q = '';
+    save();
+    renderBill();
+  }
+
+  function memberPanel() {
+    const buying = cardLoad() > 0;
+    const box = h('div', { class: 'row-field member-panel' }, h('span', { class: 'label' }, txt(S.memberTitle)));
+    if (bill.member) {
+      const m = bill.member;
+      box.append(h('div', { class: 'member-card' },
+        h('div', {}, h('strong', {}, m.name), m.phone ? ` · ${m.phone}` : '', m.isNew ? h('span', { class: 'member-tag' }, txt(S.memberNewTag)) : null),
+        h('div', { class: 'muted' }, `${txt(S.memberBalance)}: `, h('strong', {}, money(m.balance))),
+        h('button', { type: 'button', class: 'link-button', onclick: () => { bill.member = null; save(); renderBill(); } }, txt(S.memberChange))));
+      return box;
+    }
+    box.append(h('div', { class: 'member-search' },
+      h('input', {
+        type: 'search', placeholder: txt(S.memberSearch), value: memberUI.q, autocomplete: 'off', 'aria-label': txt(S.memberSearch),
+        oninput: (e) => { memberUI.q = e.target.value; },
+        onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); searchMembers(); } },
+      }),
+      h('button', { type: 'button', class: 'secondary', disabled: memberUI.busy, onclick: searchMembers }, txt(S.memberFind))));
+    if (memberUI.error) box.append(h('div', { class: 'notice', role: 'alert' }, h('span', { class: 'i' }, '⚠️'), lt(memberUI.error)));
+    if (memberUI.results) {
+      if (!memberUI.results.length) box.append(h('p', { class: 'muted' }, txt(S.memberNone)));
+      memberUI.results.forEach((m) => box.append(h('button', { type: 'button', class: 'member-result', onclick: () => chooseMember(m) },
+        h('span', {}, h('strong', {}, m.name), m.phone ? ` · ${m.phone}` : ''), h('span', { class: 'price' }, money(m.balance)))));
+    }
+    if (buying) {
+      box.append(h('button', {
+        type: 'button', class: 'secondary',
+        onclick: () => {
+          if (!bill.customer.trim()) { memberUI.error = S.memberNewNeedsName; renderBill(); return; }
+          if (!askPin()) return;
+          memberUI.error = null;
+          chooseMember({ id: `m-${newUid()}`, name: bill.customer.trim(), phone: bill.phone.trim(), balance: 0, isNew: true });
+        },
+      }, txt(S.memberNew)));
+    }
+    return box;
+  }
+
   function renderBill() {
     const box = document.getElementById('bill');
     if (!box) return;
@@ -520,12 +643,14 @@
       }, h('span', { class: 'box' }), lt(p.label)))),
       VAT_PAYMENTS.includes(bill.pay) ? h('div', { class: 'notice info' }, h('span', { class: 'i' }, 'ℹ️'), lt(S.vatNote)) : null);
 
+    const memberRow = needsMember() ? memberPanel() : null;
+
     const receivedRow = bill.pay === 'cash' ? h('label', { class: 'row-field field' },
       h('span', { class: 'label' }, txt(S.received), h('span', { class: 'opt' }, ` (${txt(S.optional)})`)),
       moneyInput(bill.received, (v) => { bill.received = v; save(); renderTotals(); })) : null;
 
     const outsideList = h('datalist', { id: 'outside-staff-list' }, outsideNames().map((n) => h('option', { value: n })));
-    box.replaceChildren(...[lines, outsideList, h('hr', { class: 'divider' }), customerFields(), discountRow, payRow, receivedRow,
+    box.replaceChildren(...[lines, outsideList, h('hr', { class: 'divider' }), customerFields(), discountRow, payRow, memberRow, receivedRow,
       h('div', { id: 'totals' }), h('div', { id: 'bill-errors' }),
       h('div', { class: 'actions' },
         h('button', { type: 'button', class: 'primary', onclick: viewReceipt }, txt(S.view)),
@@ -543,6 +668,7 @@
         t.discount ? row(S.discount, `− ${money(t.discount)}`) : null,
         t.vat ? row(S.vat, money(t.vat)) : null,
         h('div', { class: 'bill-total' }, h('span', {}, txt(S.total)), h('span', { class: 'price' }, money(t.total))),
+        bill.pay === 'member' && bill.member ? row(S.memberAfter, money(bill.member.balance - t.total), bill.member.balance < t.total ? 'short' : '') : null,
         t.change != null ? row(S.change, t.change < 0 ? `− ${money(-t.change)}` : money(t.change), t.change < 0 ? 'short' : '') : null,
       ].filter(Boolean));
     }
@@ -566,7 +692,11 @@
 
   function viewReceipt() {
     const errors = document.getElementById('bill-errors');
-    const problem = !bill.lines.length ? S.nothing : unconfirmed().length ? S.rangeWarn : missingStaff().length ? S.staffWarn : null;
+    const memberProblem = !needsMember() ? null
+      : bill.pay === 'member' && cardLoad() > 0 ? S.memberBoth
+      : !bill.member ? S.memberPick
+      : bill.pay === 'member' && bill.member.balance < totals().total ? S.memberShort : null;
+    const problem = !bill.lines.length ? S.nothing : memberProblem ? memberProblem : unconfirmed().length ? S.rangeWarn : missingStaff().length ? S.staffWarn : null;
     if (problem) {
       errors.replaceChildren(h('div', { class: 'notice', role: 'alert' }, h('span', { class: 'i' }, '⚠️'), lt(problem)));
       document.querySelectorAll('.needs-price, .needs-staff').forEach((n) => n.classList.add('invalid'));
@@ -603,6 +733,10 @@
     if (bill.pay === 'cash' && t.received) {
       after.push([S.received, money(t.received)]);
       if (t.change >= 0) after.push([S.change, money(t.change)]);
+    }
+    if (bill.member && bill.pay === 'member') after.push([S.cardBalance, money(bill.member.balance - t.total)]);
+    else if (bill.member && cardLoad() > 0) {
+      after.push([S.cardLoaded, money(cardLoad())], [S.cardBalance, money(bill.member.balance + cardLoad())]);
     }
     return { t, st, meta, sums, after };
   }
@@ -676,6 +810,8 @@
     return {
       type: 'bill',
       website: '',
+      pin: needsMember() ? storage.get(PIN_KEY) || '' : '',
+      member: needsMember() && bill.member ? { id: bill.member.id, name: bill.member.name, phone: bill.member.phone } : null,
       uid: bill.uid,
       no: st.no,
       date: st.iso,
@@ -703,10 +839,11 @@
         net: amounts[i] - shares[i],
         comm: commOf(l),
         session: !ADDON_KEYS.has(l.key),
+        card_value: cardValue(l),
       })),
     };
   }
-  const hashOf = (payload) => JSON.stringify({ ...payload, website: undefined });
+  const hashOf = (payload) => JSON.stringify({ ...payload, website: undefined, pin: undefined });
   const isSaved = () => !!bill.savedHash && bill.lines.length > 0 && bill.savedHash === hashOf(billPayload());
 
   const queue = {
@@ -724,9 +861,11 @@
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    return result;
   }
 
   let saveState = 'idle'; // idle | saving | error | queued | not-configured
+  let saveError = S.saveError;
   async function saveBill() {
     if (!bill.lines.length || saveState === 'saving') return;
     bill.lines.forEach((l) => { if (isOutside(l)) rememberOutside(l.staff); });
@@ -734,7 +873,17 @@
     saveState = 'saving';
     renderSaveStatus();
     try {
-      await send(payload);
+      let result;
+      try {
+        result = await send(payload);
+      } catch (err) {
+        // A wrong or missing PIN: ask again once and retry.
+        if (!/member:pin/.test(err.message)) throw err;
+        storage.set(PIN_KEY, '');
+        if (!askPin()) throw err;
+        result = await send(billPayload());
+      }
+      if (bill.member && result && typeof result.balance_before === 'number') bill.member.balance = result.balance_before;
       queue.drop(payload.uid);
       bill.savedHash = hashOf(payload);
       bill.savedAt = new Date().toISOString();
@@ -749,7 +898,10 @@
         bill.savedHash = hashOf(payload);
         save();
         saveState = 'queued';
-      } else saveState = 'error';
+      } else {
+        saveState = 'error';
+        saveError = memberErrorText(err.message) || S.saveError;
+      }
     }
     renderSaveStatus();
   }
@@ -762,7 +914,7 @@
     let cls = 'pending';
     let msg = isSaved() ? null : (bill.savedHash ? S.changed : S.notSaved);
     if (saveState === 'saving') msg = S.saving;
-    else if (saveState === 'error') { msg = S.saveError; cls = 'bad'; }
+    else if (saveState === 'error') { msg = saveError; cls = 'bad'; }
     else if (saveState === 'not-configured') { msg = S.notConfigured; cls = 'bad'; }
     else if (pending) { msg = S.queued; cls = 'bad'; }
     else if (isSaved()) { msg = S.saved; cls = 'ok'; }
