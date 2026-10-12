@@ -58,6 +58,7 @@ function doPost(e) {
     if (data.website) return json({ ok: true }); // honeypot filled in: a bot
     if (data.type === 'bill') return json(saveBill(data)); // from the bill page (see "Bills" below)
     if (data.type === 'member_search') return json(searchMembers(data)); // see "Member cards" below
+    if (data.type === 'member_history') return json(memberHistory(data));
 
     const submitted = new Date();
     const signatureUrl = saveSignature(data.signature, data.full_name, submitted);
@@ -826,6 +827,20 @@ function searchMembers(data) {
     ok: true,
     members: found.slice(0, 10).map((m) => ({ id: m.id, name: m.name, phone: m.phone, balance: balances[m.id] || 0 })),
   };
+}
+
+/** { type: 'member_history', pin, id } → that member's last 15 ledger rows, newest first. */
+function memberHistory(data) {
+  checkPin(data);
+  const id = String(data.id || '');
+  const ledger = memberTab(SpreadsheetApp.getActiveSpreadsheet(), MEMBER_TABS.ledger, LEDGER_COLUMNS);
+  const last = ledger.getLastRow();
+  const rows = last < 2 ? [] : ledger.getRange(2, 1, last - 1, LEDGER_COLUMNS.length).getValues();
+  const mine = rows.filter((r) => String(r[L_MEMBER]) === id).map((r) => ({
+    date: r[L_DATE] instanceof Date ? Utilities.formatDate(r[L_DATE], 'Asia/Ho_Chi_Minh', 'dd/MM/yyyy') : String(r[L_DATE]),
+    type: String(r[5]), amount: Number(r[L_AMOUNT]) || 0, no: String(r[7]), note: String(r[8]),
+  }));
+  return { ok: true, history: mine.reverse().slice(0, 15) };
 }
 
 /**

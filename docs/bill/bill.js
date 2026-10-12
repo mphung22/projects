@@ -136,6 +136,8 @@
     memberLoadError: W('Không tìm được thẻ. Kiểm tra mạng rồi thử lại.', 'Could not search. Check the connection and try again.'),
     cardLoaded: W('Nạp vào thẻ', 'Loaded to card'),
     cardBalance: W('Số dư thẻ còn lại', 'Card balance'),
+    memberHistory: W('Lịch sử thẻ', 'Card history'),
+    memberNoHistory: W('Chưa có giao dịch.', 'No transactions yet.'),
     confirmUnsaved: W('Hoá đơn này CHƯA được lưu. Vẫn bắt đầu hoá đơn mới?', 'This bill has NOT been saved. Start a new bill anyway?'),
   };
 
@@ -449,7 +451,7 @@
   // Member cards (balances live in the Google Sheet)
   // ---------------------------------------------------------------------------
 
-  const memberUI = { q: '', results: null, busy: false, error: null };
+  const memberUI = { q: '', results: null, busy: false, error: null, history: null, historyFor: null };
 
   function memberErrorText(message) {
     const m = /member:(pin|locked|setup|both|none|unknown|balance)/.exec(message || '');
@@ -466,6 +468,33 @@
     return pin;
   }
 
+  async function memberRequest(payload) {
+    const endpoint = (window.SEREN_CHECKIN || {}).endpoint;
+    const response = await fetch(endpoint, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow',
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!result.ok) {
+      if (/member:pin/.test(result.error || '')) storage.set(PIN_KEY, '');
+      throw new Error(result.error || 'error');
+    }
+    return result;
+  }
+
+  async function toggleHistory(member) {
+    if (memberUI.historyFor === member.id) { memberUI.historyFor = null; renderBill(); return; }
+    const pin = askPin();
+    if (!pin) return;
+    try {
+      memberUI.history = (await memberRequest({ type: 'member_history', pin, id: member.id })).history;
+      memberUI.historyFor = member.id;
+      memberUI.error = null;
+    } catch (err) {
+      memberUI.error = memberErrorText(err.message) || S.memberLoadError;
+    }
+    renderBill();
+  }
+
   async function searchMembers() {
     const q = memberUI.q.trim();
     if (q.length < 2 || memberUI.busy) return;
@@ -475,17 +504,7 @@
     memberUI.error = null;
     renderBill();
     try {
-      const endpoint = (window.SEREN_CHECKIN || {}).endpoint;
-      const response = await fetch(endpoint, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ type: 'member_search', pin, q }), redirect: 'follow',
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!result.ok) {
-        if (/member:pin/.test(result.error || '')) storage.set(PIN_KEY, '');
-        throw new Error(result.error || 'error');
-      }
-      memberUI.results = result.members;
+      memberUI.results = (await memberRequest({ type: 'member_search', pin, q })).members;
     } catch (err) {
       memberUI.results = null;
       memberUI.error = memberErrorText(err.message) || S.memberLoadError;
@@ -512,7 +531,17 @@
       box.append(h('div', { class: 'member-card' },
         h('div', {}, h('strong', {}, m.name), m.phone ? ` · ${m.phone}` : '', m.isNew ? h('span', { class: 'member-tag' }, txt(S.memberNewTag)) : null),
         h('div', { class: 'muted' }, `${txt(S.memberBalance)}: `, h('strong', {}, money(m.balance))),
-        h('button', { type: 'button', class: 'link-button', onclick: () => { bill.member = null; save(); renderBill(); } }, txt(S.memberChange))));
+        h('div', { class: 'member-actions' },
+          m.isNew ? null : h('button', { type: 'button', class: 'link-button', onclick: () => toggleHistory(m) }, txt(S.memberHistory)),
+          h('button', { type: 'button', class: 'link-button', onclick: () => { bill.member = null; memberUI.historyFor = null; save(); renderBill(); } }, txt(S.memberChange)))));
+      if (memberUI.error) box.append(h('div', { class: 'notice', role: 'alert' }, h('span', { class: 'i' }, '⚠️'), lt(memberUI.error)));
+      if (memberUI.historyFor === m.id) {
+        const list = memberUI.history || [];
+        box.append(list.length ? h('div', { class: 'member-history' }, list.map((x) => h('div', { class: 't-row' },
+          h('span', {}, `${x.date} · ${x.type}${x.no ? ` · ${x.no}` : ''}`),
+          h('span', { class: `price${x.amount < 0 ? ' short' : ''}` }, `${x.amount > 0 ? '+' : '−'}${money(Math.abs(x.amount))}`))))
+          : h('p', { class: 'muted' }, txt(S.memberNoHistory)));
+      }
       return box;
     }
     box.append(h('div', { class: 'member-search' },

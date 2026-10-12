@@ -20,7 +20,7 @@ This repo was originally Python real-estate notebooks (repo root). The Seren wor
 - **Main website:** serensaigon.com is a separate Netlify project, `mellow-palmier-d02528`, deployed by Netlify Drop. **Don't drag single files onto it**: a drop replaces the whole site. The DNS is at Namecheap (CNAME `checkin` → `mphung22.github.io`).
 - **Google review link:** `https://g.page/r/CTpMl46hoXZSEBM/review`. It's the app default in `ios-apps/Shared/Settings.swift`.
 
-- **The iPad is gone**: the owner no longer has the iPad, and reception uses the desktop web pages (`docs/`). `ios-apps/Shared/Members.swift` (iPad member cards) is unused and untested.
+- **The iPad is gone**: the owner no longer has the iPad, and reception uses the desktop web pages (`docs/`). The iPad member-card code was removed; member cards exist only on the web bill page. Open tasks 1-2 below that depend on the iPad no longer apply.
 
 ## Conventions
 - Every customer-facing string is bilingual: `L("Tiếng Việt", "English")`, in Swift and in `docs/app.js`. In both, `L` also picks up zh/ko/fr/ja/ru from `docs/i18n.js` (Swift via the generated `Translations.swift`; missing ones fall back to English). The iPad staff area stays Vietnamese + English. **When you add or change an English string, add its translations to `i18n.js` too.** Records, the Google Sheet and emails stay Vietnamese + English whatever language the customer picks.

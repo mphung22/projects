@@ -20,6 +20,7 @@ After you edit `Code.gs`, use **Deploy › Manage deployments › Edit › New v
 The bill page (`/bill/`) keeps member-card balances in the same Google Sheet:
 - selling a Seren Touch / Flow / Glow / Balance / VIP card adds its spendable value to the customer's card;
 - choosing **Thẻ thành viên / Member card** as the payment method deducts the bill total from the card;
+- after picking a customer, **Lịch sử thẻ / Card history** shows their last 15 transactions;
 - tabs **Thẻ thành viên - Members** (balance per customer) and **Thẻ - Giao dịch / Card ledger** (every sale and payment) are created on the first card sale.
 
 One-time setup, because the web app URL is public: in Apps Script open **Project Settings (gear) › Script properties › Add script property**,

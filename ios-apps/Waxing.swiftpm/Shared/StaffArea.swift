@@ -126,8 +126,6 @@ struct StaffDashboard<A: FormAnswers>: View {
     @State private var selection: UUID?
     @State private var showSettings = false
     @State private var showFeedback = false
-    @State private var showMembers = false
-    @ObservedObject private var memberStore = MemberStore.shared
     @State private var shareItem: ShareItem?
     @State private var exportError: String?
 
@@ -181,11 +179,6 @@ struct StaffDashboard<A: FormAnswers>: View {
                         }
                         .disabled(store.submissions.isEmpty)
                         Button {
-                            showMembers = true
-                        } label: {
-                            Label("Thẻ member / Member cards (\(memberStore.members.count))", systemImage: "creditcard")
-                        }
-                        Button {
                             showFeedback = true
                         } label: {
                             Label("Phản hồi khách hàng / Feedback (\(feedbackStore.items.count))", systemImage: "star.bubble")
@@ -215,9 +208,6 @@ struct StaffDashboard<A: FormAnswers>: View {
         }
         .sheet(isPresented: $showSettings) {
             StaffSettingsView()
-        }
-        .sheet(isPresented: $showMembers) {
-            MembersView(exportPrefix: config.exportPrefix, store: memberStore)
         }
         .sheet(isPresented: $showFeedback) {
             FeedbackListView(exportPrefix: config.exportPrefix, store: feedbackStore)
