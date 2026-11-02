@@ -64,7 +64,7 @@
     staff: W('Kỹ thuật viên', 'Staff'),
     optional: W('không bắt buộc', 'optional'),
     add: W('Thêm dịch vụ', 'Add services'),
-    addHint: W('Chạm để thêm. Chạm lại để thêm một lần nữa.', 'Tap to add. Tap again to add another.'),
+    addHint: W('Chạm để thêm. Chạm lại để thêm dòng mới và chọn nhân viên khác.', 'Tap to add. Tap again for a new line with its own staff.'),
     bill: W('Hoá đơn', 'Bill'),
     empty: W('Chưa có dịch vụ nào.', 'No services added yet.'),
     subtotal: W('Tạm tính', 'Subtotal'),
@@ -303,7 +303,8 @@
 
   function addLine(option, cat) {
     startBill();
-    const existing = bill.lines.find((l) => l.key === option.key && !l.custom);
+    // A repeat tap starts a new line so each one has its own staff. Member cards have no staff, so they stack.
+    const existing = needsStaff({ cat: cat.id }) ? null : bill.lines.find((l) => l.key === option.key && !l.custom);
     if (existing) existing.qty += 1;
     else {
       bill.lines.push({
