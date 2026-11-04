@@ -180,8 +180,10 @@
     if (serviceId === 'massage') return 'massage';
     if (serviceId === 'head_spa') return 'headspa'; // rituals and add-ons, 15% of the selling price
     if (serviceId === 'brows_lashes') {
+      // Lash extensions, lifts, tints and lash + brow combos: 10%. Brow-only services: no commission.
       const ext = typeof EXT_IDS !== 'undefined' ? EXT_IDS : [];
-      return ext.includes(optionId) ? 'lash' : 'none';
+      const lift = typeof LIFT_IDS !== 'undefined' ? LIFT_IDS : [];
+      return ext.includes(optionId) || lift.includes(optionId) ? 'lash' : 'none';
     }
     return 'none';
   }
