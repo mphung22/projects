@@ -103,7 +103,7 @@ const COMBO_IDS = ['combo_lift_lam', 'combo_lift_tint_lam'];
 const BROW_IDS = ['brow_cleanup', 'brow_wax', 'brow_black_tint', 'brow_colour_tint', 'brow_lamination', ...COMBO_IDS];
 const LIFT_IDS = ['lash_lift', 'lash_design_lift', 'lash_lift_backtint', 'lash_tinting', 'lash_straightening', ...COMBO_IDS];
 const EXT_IDS = ['set_classic', 'set_babe', 'set_wispy', 'set_kimk', 'set_cateye', 'set_volume', 'set_animefox', 'set_douyin',
-  'upgrade_natural', 'upgrade_matte', 'lash_lower', 'lash_removal', 'lash_colour_mix', 'lash_custom'];
+  'upgrade_natural', 'upgrade_matte', 'lash_lower', 'lash_infill', 'lash_removal', 'lash_colour_mix', 'lash_custom'];
 const pick = (selected, ids) => !selected.length || selected.some((id) => ids.includes(id));
 const hasLashes = (s) => pick(s.brow_services || [], [...LIFT_IDS, ...EXT_IDS]);
 // Massage services that use oil, and the almond note for the Calming oil.
@@ -146,6 +146,7 @@ const SERVICES = [
             { id: 'lash_tinting', label: L('Phủ đen mi', 'Lash tinting'), price: '150.000₫' },
             { id: 'lash_straightening', label: L('Duỗi mi', 'Lash straightening'), price: '100.000₫' },
             { id: 'lash_lower', label: L('Nối mi dưới', 'Lower lash extension'), price: '100.000₫' },
+            { id: 'lash_infill', label: L('Dặm mi', 'Lash extension infill'), price: '200.000 – 250.000₫' },
             { id: 'lash_removal', label: L('Tháo mi, vệ sinh', 'Lash removal & cleansing'), price: '60.000₫' },
             { id: 'lash_colour_mix', label: L('Mi mix màu', 'Colour mix lashes'), price: '50.000 – 100.000₫' },
             { id: 'lash_custom', label: L('Mẫu design riêng', 'Custom lash design'), price: '500.000₫' },

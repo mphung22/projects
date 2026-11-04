@@ -83,6 +83,7 @@ window.SEREN_I18N = {
     "Lash tinting": { zh: "睫毛染黑", ko: "속눈썹 틴트", fr: "Teinture des cils", ja: "まつ毛ティント", ru: "Окрашивание ресниц" },
     "Lash straightening": { zh: "睫毛拉直", ko: "속눈썹 스트레이트", fr: "Lissage des cils", ja: "まつ毛ストレート", ru: "Выпрямление ресниц" },
     "Lower lash extension": { zh: "下睫毛嫁接", ko: "언더 속눈썹 연장", fr: "Extensions des cils inférieurs", ja: "下まつ毛エクステ", ru: "Наращивание нижних ресниц" },
+    "Lash extension infill": { zh: "睫毛补种", ko: "속눈썹 리필", fr: "Remplissage des extensions de cils", ja: "まつ毛エクステ リペア", ru: "Коррекция нарощенных ресниц" },
     "Lash removal & cleansing": { zh: "卸睫毛与清洁", ko: "속눈썹 제거 및 클렌징", fr: "Dépose et nettoyage des cils", ja: "まつ毛オフ・クレンジング", ru: "Снятие ресниц и очищение" },
     "Colour mix lashes": { zh: "混色睫毛", ko: "컬러 믹스 속눈썹", fr: "Cils de couleur mixte", ja: "カラーミックスまつ毛", ru: "Цветные ресницы (микс)" },
     "Custom lash design": { zh: "定制睫毛设计", ko: "맞춤 속눈썹 디자인", fr: "Design de cils sur mesure", ja: "オーダーメイドまつ毛デザイン", ru: "Индивидуальный дизайн ресниц" },
