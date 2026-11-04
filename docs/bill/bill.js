@@ -40,7 +40,7 @@
   // Nails and lash extensions 10% after discount, waxing and heel scrub 15%, massage and head spa per session.
   const COMM = {
     nails: W('Nails', 'Nails'),
-    lash: W('Nối mi', 'Lash extensions'),
+    lash: W('Mi & chân mày', 'Lashes & brows'),
     wax: W('Waxing', 'Waxing'),
     heel: W('Chà gót', 'Heel scrub'),
     massage: W('Massage / body (20%)', 'Massage / body (20%)'),
@@ -179,12 +179,7 @@
     if (serviceId === 'waxing') return 'wax';
     if (serviceId === 'massage') return 'massage';
     if (serviceId === 'head_spa') return 'headspa'; // rituals and add-ons, 15% of the selling price
-    if (serviceId === 'brows_lashes') {
-      // Lash extensions, lifts, tints and lash + brow combos: 10%. Brow-only services: no commission.
-      const ext = typeof EXT_IDS !== 'undefined' ? EXT_IDS : [];
-      const lift = typeof LIFT_IDS !== 'undefined' ? LIFT_IDS : [];
-      return ext.includes(optionId) || lift.includes(optionId) ? 'lash' : 'none';
-    }
+    if (serviceId === 'brows_lashes') return 'lash'; // every lash and brow service: 10%
     return 'none';
   }
   const COMM_BY_KEY = {};
