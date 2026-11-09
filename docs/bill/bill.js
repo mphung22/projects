@@ -19,11 +19,11 @@
     address: '10E Đ. Lương Hữu Khánh, P. Bến Thành, TP.HCM',
     contact: '+84 879 303 993 · serensaigon.com',
   };
-  const VAT_RATE = 0.08;
+  const VAT_RATE = 0.04; // card processing fee (kept as `vat` in the saved bill so the sheet columns still line up)
   // Receipt printer: Xprinter XP-58IIT (58 mm thermal paper). Change PAPER_MM to 80 for an 80 mm printer
   // (and the 48mm width in bill.css to 72mm).
   const PAPER_MM = 58;
-  /** Payment methods that always add VAT on top of the bill. */
+  /** Payment methods that always add the card fee on top of the bill. */
   const VAT_PAYMENTS = ['card'];
   const TZ = 'Asia/Ho_Chi_Minh';
   const STORE_KEY = 'seren-bill';
@@ -69,7 +69,7 @@
     empty: W('Chưa có dịch vụ nào.', 'No services added yet.'),
     subtotal: W('Tạm tính', 'Subtotal'),
     discount: W('Giảm giá', 'Discount'),
-    vat: W('Thuế VAT 8%', 'VAT 8%'),
+    vat: W('Phí cà thẻ 4%', 'Card fee 4%'),
     total: W('Tổng cộng', 'Total'),
     payment: W('Thanh toán', 'Payment'),
     received: W('Khách đưa', 'Cash received'),
@@ -98,7 +98,7 @@
                  'Some items have a price range. Enter the actual price before viewing the receipt.'),
     nothing: W('Thêm ít nhất một dịch vụ.', 'Add at least one service.'),
     memberCards: W('Thẻ thành viên', 'Member cards'),
-    vatNote: W('Thanh toán bằng thẻ: cộng thêm 8% VAT.', 'Card payments: 8% VAT is added.'),
+    vatNote: W('Thanh toán bằng thẻ: cộng thêm 4% phí cà thẻ.', 'Card payments: 4% card fee is added.'),
     qty: W('SL', 'Qty'),
     staffShort: W('KTV', 'Staff'),
     whoDid: W('Nhân viên làm', 'Done by'),
@@ -143,7 +143,7 @@
 
   const PAYMENTS = [
     { id: 'cash', label: W('Tiền mặt', 'Cash') },
-    { id: 'card', label: W('Thẻ ngân hàng (+8% VAT)', 'Card (+8% VAT)'), onReceipt: W('Thẻ ngân hàng', 'Card') },
+    { id: 'card', label: W('Thẻ ngân hàng (+4% phí cà thẻ)', 'Card (+4% card fee)'), onReceipt: W('Thẻ ngân hàng', 'Card') },
     { id: 'transfer', label: W('Chuyển khoản', 'Bank transfer') },
     { id: 'momo', label: W('Momo', 'Momo') },
     { id: 'zalopay', label: W('ZaloPay', 'ZaloPay') },
